@@ -1,11 +1,27 @@
 module.exports.init = initialize;
 module.exports.cmdBinds = getCmdBinds;
+var sprintf = require('sprintf-js').sprintf;
 
 var status = {
 	quizEnabled: false,
 	qNumber: 0,
 	qActive: false,
 	questions: [
+		{
+			'type': 'ABCD',
+			'question': 'test1',
+			'answers': ['test1', 'test2', 'test3', 'testtttt4']
+		},
+		{
+			'type': 'ABCD',
+			'question': 'test1',
+			'answers': ['test1', 'test2', 'test3', 'testtttt4']
+		},
+		{
+			'type': 'ABCD',
+			'question': 'test1',
+			'answers': ['test1', 'test2', 'test3', 'testtttt4']
+		},
 		{
 			'type': 'REGEX',
 			'question': 'bardzo dlugi tekst',
@@ -16,11 +32,6 @@ var status = {
 			'type': 'MULTI',
 			'question': 'od 1 do 4',
 			'answers': ['jeden', 'dwa', 'trzy', 'cztery']
-		},
-		{
-			'type': 'ABCD',
-			'question': 'test1',
-			'answers': ['test1', 'test2', 'test3', 'test4']
 		},
 		{
 			'type': 'REGEX',
@@ -68,6 +79,77 @@ function getCmdBinds(){
 	return cmdBinds;
 };
 
+const ircFormats = {
+	'color': String.fromCharCode(0x03),
+	'underline': String.fromCharCode(0x1f)
+};
+
+const colors = {
+	'main': ircFormats.color + "11,01",
+	'mainS': ircFormats.color + "00,02",
+	'mainInvisible': ircFormats.color + "02,02",
+	'info': ircFormats.color + "09,01",
+	'infoS': ircFormats.color + "08,01",
+	'infoSR': ircFormats.color + "04,01",
+	'markStart': ircFormats.underline,
+	'markEnd': ircFormats.underline,
+	'hintHidden': ircFormats.color + "04",
+	'hintShown': ircFormats.color + "09",
+	'error': ircFormats.color + "15,05",
+	'errorS': ircFormats.color + "08,05",
+	'lineStart': ''
+};
+
+const messages_PL = {
+	'currRankHeader': colors.lineStart + colors.main + ' Aktualnie najlepsi: ',
+	'rankHeader': colors.lineStart + colors.main + ' ' + colors.markStart + 'Wyniki' + colors.markEnd + ': ',
+	'rankFooter': colors.lineStart + colors.main + ' Koniec wyników. ',
+	'rankPlace': colors.lineStart + colors.main + ' Miejsce ' + colors.markStart + '%d.' + colors.markEnd + ' ' + colors.mainS + ' %s ' + colors.main + ' ' + colors.markStart + '%d' + colors.markEnd + ' punkt%s ',
+	'manualStop': colors.lineStart + colors.main + ' Quiz przerwany przez operatora! ' + colors.markStart + 'Wyniki' + colors.markEnd + ': ',
+	'manualSkip': colors.lineStart + colors.info + ' Pytanie nr ' + colors.infoS + '%d' + colors.info + ' pominięte przez operatora. ',
+	'started': colors.lineStart + colors.main + ' Quiz rozpoczęty! ',
+	'helpHint': colors.lineStart + colors.main + ' Nie wiesz, jak grać? Napisz ' + colors.markStart + '%s' + colors.markEnd + ' :) ',
+	'manualRankChanged': colors.lineStart + colors.info + ' Operator zmienił ilość punktów dla ' + colors.infoS + '%s' + colors.info + ' o ' + colors.infoS + '%d' + colors.info + '.',
+	'aborted': colors.lineStart + colors.main + ' Quiz przerwany :( ' + colors.markStart + 'Wyniki' + colors.markEnd + ': ',
+	'stopped': colors.lineStart + colors.main + ' Koniec quizu! Czas trwania: ' + colors.markStart + '%s' + colors.markEnd + ', ilość pytań: ' + colors.markStart + '%d' + colors.markEnd,
+	'announceFirstQuestion': colors.lineStart + colors.info + ' Pierwsze pytanie za ' + colors.infoS + '%d s' + colors.info + '.',
+	'endOfQuestions': colors.lineStart + colors.info + ' Koniec pytań! ',
+	'announceNextQuestion': colors.lineStart + colors.info + ' Następne pytanie za ' + colors.infoS + '%.1f s ',
+	'consolation': colors.lineStart + colors.info + ' Nagroda pocieszenia dla ' + colors.infoS + '%s' + colors.info + ' (bieżący wynik ' + colors.infoS + '%d' + colors.info + ' punkt%s), który udzielił prawidłowej odpowiedzi jako %s, po czasie ' + colors.infoS + '%d' + colors.info + '. Oto ' + colors.infoS + '%d' + colors.info + ' punkt%s dla Ciebie. ',
+	'correctlyAnswered': colors.lineStart + colors.infoS + ' %s' + colors.info + ' (bieżący wynik ' + colors.infoS + '%d' + colors.info + ' punkt%s) udzielił, po ' + colors.infoS + '%s' + colors.info + '%s, poprawnej odpowiedzi, otrzymując za to ' + colors.infoS + '%d' + colors.info + ' punkt%s ',
+	'correctAnswer': colors.lineStart + colors.main + ' Poprawna odpowiedź ' + colors.mainS + ' %s ',
+	'correctlyAnsweredMulti': colors.lineStart + colors.main + ' Poprawna odpowiedź: ' + colors.mainS + ' %s ' + colors.info + ' Punkt dla ' + colors.infoS + '%s' + colors.info + '. ',
+	'endOfTimeMulti': colors.lineStart + colors.info + ' Koniec czasu. Nie odgadnięto ' + colors.infoS + '%d' + colors.info + ' odpowiedzi. ',
+	'allAnsweredMulti': colors.lineStart + colors.info + ' Odgadnięto wszystkie odpowiedzi! ',
+	'correctlyAnsweredABCD': colors.lineStart + colors.info + ' Poprawnie odpowiedzieli: ',
+	'correctAnswerABCD': colors.lineStart + colors.main + ' Właściwa odpowiedź: ' + colors.mainS + '%s: %s ',
+	'incorrectlyAnsweredABCD': colors.lineStart + colors.info + ' Niepoprawnie odpowiedzieli: ',
+	'correctAnswerNickABCD': colors.infoS + '%s ' + colors.info + '(' + colors.infoS + '+%d' + colors.info + ') ',
+	'incorrectAnswerNickABCD': colors.infoSR + '%s ' + colors.info + '(' + colors.infoS + '-%d' + colors.info + ') ',
+	'question': colors.lineStart + colors.main + ' Pytanie nr ' + colors.markStart + '%d' + colors.markEnd + ' z %d: ' + colors.mainS + ' %s ',
+	'remainingAnswersMulti': colors.lineStart + colors.info + ' Pozostało ' + colors.infoS + '%d' + colors.info + ' odpowiedzi i ' + colors.infoS + '%d s' + colors.info + ' czasu.',
+	'answersMulti': colors.lineStart + colors.info + ' Ilość odpowiedzi: ' + colors.infoS + '%d' + colors.info + '. Czas na odpowiedź: ' + colors.infoS + '%d s ',
+	'timeToAnswerABCD': colors.lineStart + colors.info + ' Czas na odpowiedź: ' + colors.infoS + '%d s ',
+	'firstHint': colors.lineStart + colors.info + ' Podpowiedź: ' + colors.hintHidden + ' %s ',
+	'hint': colors.lineStart + colors.info + ' Podpowiedź %d z %d: ' + colors.hintShown + ' %s ',
+	'tooManyHints': colors.lineStart + colors.error + ' Wyczerpano limit podpowiedzi dla pytania. ',
+	'hintsGiven': ' i ' + colors.infoS + '%d' + colors.info + ' podpowiedzi%s',
+	'hintsPlural': 'ach',
+	
+	'cmdStopped': 'Quiz na %s przerwany',
+	'cmdNoQuestionActive': 'W tym momencie nie jest aktywne zadne pytanie. Poczekaj.',
+	'cmdSkipped': 'Właśnie pominąłeś pytanie nr %d.',
+	'cmdAlreadyStarted': 'Już uruchomiony!',
+	'cmdNoQuestions': 'Brak pytań!',
+	'cmdStarted': 'Uruchomiono!',
+	'cmdAddpointSyntax': 'Użycie: ADDPOINT nick ile_punktów',
+	'cmdAddpointLimit': 'Możesz odjąć lub dodać maksymalnie 5 punktów.',
+	'cmdAddpointNewNick': 'Nick %s nie był obecny na liście. Mimo tego kontynuuję.',
+	'cmdAddpoint': 'Dodano %d punkt(ów) dla %s. Ma teraz %d.'
+};
+
+var messages = messages_PL;
+
 var listeners = {
 	'message': [
 		function handler(nick, to, text, message){
@@ -75,9 +157,9 @@ var listeners = {
 			if(!status.quizEnabled) return;
 			if(settings.statsDelay != 0 && (text == '!stat' || text == '!stats')){
 				//sprawdź czas
-				bot.say(name, 'Aktualnie najlepsi:');
+				bot.say(name, messages.currRankHeader);
 				quiz.printStats(5);
-				bot.say(name, 'Koniec wynikow.');
+				bot.say(name, messages.rankFooter);
 				return;
 			}
 			if(text == '!help' || text == '!pomoc'){
@@ -123,30 +205,30 @@ var bot;
 var cmdBinds = {
 	'STOP': function(src, cmd, args){
 		if(!status.quizEnabled) return;
-		bot.say(name, 'Quiz przerwany przez operatora! Wyniki:');
+		bot.say(name, messages.manualStop);
 		quiz.finish();
-		src.send('Quiz na '+name+' przerwany');
+		src.send(sprintf(messages.cmdStopped, name));
 	},
 	'HELP': function(src, cmd, args){ // zrobić!
 	},
 	'SKIP': function(src, cmd, args){
 		if(!status.quizEnabled) return;
 		if(!status.qActive){
-			src.send('W tym momencie nie jest aktywne zadne pytanie. Poczekaj.');
+			src.send(messages.cmdNoQuestionActive);
 			return;
 		}
 		status.qActive = 0;
-		bot.say('Pytanie nr '+status.qNumber+' pominięte przez operatora.');
+		bot.say(name, sprintf(messages.manualSkip, status.qNumber));
 		quiz.nextQuestion();
-		src.send('Właśnie pominąłeś pytanie nr '+status.qNumber-1);
+		src.send(sprintf(messages.cmdSkipped, status.qNumber-1));
 	},
 	'START': function(src, cmd, args){
 		if(status.quizEnabled){
-			src.send('Już uruchomiony!');
+			src.send(messages.cmdAlreadyStarted);
 			return;
 		}
 		if(status.questions == false){
-			src.send('Brak pytań!');
+			src.send(messages.cmdNoQuestions);
 			return;
 		}
 		status.quizEnabled = true;
@@ -154,31 +236,31 @@ var cmdBinds = {
 		status.hintState = 0;
 		status.currentPoints = settings.initPoints;
 		question = status.questions[status.qNumber-1];
-		bot.say(name, 'Quiz rozpoczęty!');
-		bot.say(name, 'Nie wiesz, jak grać? Napisz !pomoc :)');
+		bot.say(name, messages.started);
+		bot.say(name, sprintf(messages.helpHint, '!pomoc'));
 		//pokaż ustawienia
 		quiz.firstQuestion();
 		//zapisz czas początku quizu
-		src.send('Uruchomiono!');
+		src.send(messages.cmdStarted);
 	},
 	'ADDPOINT': function(src, cmd, args){
 		if(args.length != 2){
-			src.send('Użycie: ADDPOINT nick ile_punktów');
+			src.send(messages.cmdAddpointSyntax);
 			return;
 		}
 		var nick = args[0];
 		var points = args[1];
 		if(points < -5 || points > 5){
-			src.send('Możesz odjąć lub dodać maksymalnie 5 punktów.');
+			src.send(messages.cmdAddpointLimit);
 			return;
 		}
 		if(quiz.getPoints(nick) == false){
-			src.send('Nick '+nick+' nie był obecny na liście Mimo tego kontynuuję.');
+			src.send(sprintf(messages.cmdAddpointNewNick, nick));
 		}
 		quiz.addPoint(nick, points);
-		src.send('Dodano '+points+' punkt(ów) dla '+nick+'. Ma teraz '+quiz.getPoints(nick)+'.');
+		src.send(sprintf(messages.cmdAddpoint, points, nick, quiz.getPoints(nick)));
 		if(settings.notifyRankChange){
-			bot.say(name, 'Operator zmienił ilość punktów dla '+nick+' o '+points);
+			bot.say(name, sprintf(messages.manualRankChanged, nick, points));
 		}
 	}
 };
@@ -208,6 +290,10 @@ function timeDiff(date){
 	return diff + 's';
 }
 
+function suffix(num){
+	return 'ów';
+}
+
 var quiz = {
 	'rank': [],
 	'compareRanks': function(a,b){
@@ -227,7 +313,7 @@ var quiz = {
 	},
 	'cleanup': function(){
 		if(status.quizEnabled){
-			bot.say(name, 'Quiz przerwany :( Wyniki:');
+			bot.say(name, messages.aborted);
 			quiz.finish();
 		}
 		status.questions = [];
@@ -237,7 +323,7 @@ var quiz = {
 		if(!status.quizEnabled){
 			return;
 		}
-		bot.say(name, 'Koniec quizu! Czas trwania: '+timeDiff(status.quizStartedTime)+', ilość pytań: '+status.qNumber);
+		bot.say(name, sprintf(messages.stopped, timeDiff(status.quizStartedTime), status.qNumber));
 		question = false;
 		status.qNumber = 0;
 		status.quizEnabled = false;
@@ -249,7 +335,7 @@ var quiz = {
 	},
 	'firstQuestion': function(){
 		quiz.clearTimers();
-		bot.say(name, 'Pierwsze pytanie za '+settings.delay*2+' s');
+		bot.say(name, sprintf(messages.announceFirstQuestion, settings.delay*2));
 		status.timeouts['firstQuestion'] = setTimeout(quiz.signFirstQuestion, settings.delay*2*1000);
 	},
 	'signFirstQuestion': function(){
@@ -263,9 +349,9 @@ var quiz = {
 	'nextQuestion': function(){
 		quiz.clearTimers();
 		if(status.qNumber == status.questions.length){
-			bot.say(name, 'Koniec pytań!');
+			bot.say(name, messages.endOfQuestions);
 		} else {
-			bot.say(name, 'Następne pytanie za '+settings.delay+' s');
+			bot.say(name, sprintf(messages.announceNextQuestion, settings.delay));
 		}
 		status.timeouts['nextQuestion'] = setTimeout(quiz.signNextQuestion, settings.delay*1000);
 	},
@@ -278,7 +364,7 @@ var quiz = {
 		status.lateAnsCnt = false;
 		if(status.questions == false) return;
 		if(status.qNumber == status.questions.length){
-			bot.say(name, 'Wyniki:');
+			bot.say(name, messages.rankHeader);
 			quiz.finish();
 			return;
 		}
@@ -336,7 +422,7 @@ var quiz = {
 			if(lastpoints != points[i].points){
 				dispplace = place;
 			}
-			bot.say(name, 'Miejsce '+dispplace+'. '+points[i].nick+' '+points[i].points+' punktów');
+			bot.say(name, sprintf(messages.rankPlace, dispplace, points[i].nick, points[i].points, suffix(points[i].points)));
 			place++;
 			lastpoints = points[i].points;
 		}
@@ -352,6 +438,10 @@ var quiz = {
 			case 'MULTI': quiz.processAnswerMulti(message, nick); break;
 		}
 	},
+	'hintInfo': function(){
+		if(status.hintState == 0) return '';
+		return sprintf(messages.hintsGiven, status.hintState, status.hintState>1?messages.hintsPlural:'');
+	},
 	'processAnswerRegex': function(message, nick){
 		console.log('process regex');
 		if(!status.qActive){ // odp dodatkowe
@@ -362,7 +452,7 @@ var quiz = {
 				var myPoints = (status.currentPoints>1)?(status.currentPoints-1):1;
 				quiz.addPoint(nick, myPoints);
 				var points = quiz.getPoints(nick);
-				bot.say(name, 'Nagroda pocieszenia dla '+nick+' (bieżący wynik '+points+' punktów), który udzielił prawidłowej odpowiedzi jako '+ordinal(status.lateAnsCnt+2)+', po czasie '+timeDiff(status.questionStartedTime));
+				bot.say(name, sprintf(messages.consolation, nick, points, suffix(points), ordinal(status.lateAnsCnt+2), timeDiff(status.questionStartedTime), myPoints, suffix(myPoints)));
 				status.lateAnsCnt++;
 				status.answers[nick.toLowerCase()] = true;
 			}
@@ -371,8 +461,8 @@ var quiz = {
 		if(!quiz.checkAnswer(message)) return;
 		quiz.addPoint(nick, status.currentPoints);
 		var points = quiz.getPoints(nick);
-		bot.say(name, nick + ' (bieżący wynik '+points+' punktów) udzielił, po '+timeDiff(status.questionStartedTime)+', poprawnej odpowiedzi, otrzymując za to '+status.currentPoints+' punktów');
-		bot.say(name, 'Poprawna odpowiedź: '+question.ainfo);
+		bot.say(name, sprintf(messages.correctlyAnswered, nick, points, suffix(points), timeDiff(status.questionStartedTime), quiz.hintInfo(), status.currentPoints, suffix(status.currentPoints)));
+		bot.say(name, sprintf(messages.correctAnswer, question.ainfo));
 		
 		status.qActive = 0;
 		status.answers[nick.toLowerCase()] = true;
@@ -415,7 +505,7 @@ var quiz = {
 			}
 		}
 		if(!found) return;
-		bot.say(name, 'Poprawna odpowiedź: ' + question.answers[i] + '. Punkt dla '+nick+'.');
+		bot.say(name, sprintf(messages.correctlyAnsweredMulti, question.answers[i], nick));
 		quiz.addPoint(nick, 1);
 		for(i=0; i<question.answers.length; i++){
 			if(status.answered[i] == false) return;
@@ -427,9 +517,9 @@ var quiz = {
 		var unanswered = quiz.getMultiUnanswered();
 		status.answered = [];
 		if(unanswered > 0){
-			bot.say(name, 'Koniec czasu. Nie odgadnięto '+unanswered+' odpowiedzi.');
+			bot.say(name, sprintf(messages.endOfTimeMulti, unanswered));
 		} else {
-			bot.say(name, 'Odgadnięto wszystkie odpowiedzi!');
+			bot.say(name, messages.allAnsweredMulti);
 		}
 		quiz.nextQuestion();		
 	},
@@ -437,23 +527,23 @@ var quiz = {
 		var currentPoints = status.currentPoints;
 		var currentNegpoints = status.currentPoints;
 		if(currentNegpoints > 1) currentNegpoints--;
-		var text = 'Poprawnie odpowiedzieli: ';
+		var text = messages.correctlyAnsweredABCD;
 		status.qActive = 0;
 		if(question.type == 'ABCD'){
 			var char = String.fromCharCode('A'.charCodeAt(0) + status.correctAnswer);
-			bot.say(name, 'Właściwa odpowiedź: '+char+': '+question.answers[0]);
+			bot.say(name, sprintf(messages.correctAnswerABCD, char, question.answers[0]));
 			for(nick in status.answered){
 				if(status.answered[nick].correct != true) continue;
-				text += status.answered[nick].nick + ' ('+currentPoints+') ';
+				text += sprintf(messages.correctAnswerNickABCD, status.answered[nick].nick, currentPoints);
 				quiz.addPoint(status.answered[nick].nick, currentPoints);
 				if(currentPoints > 1) currentPoints--;
 				if(currentNegpoints > 1) currentNegpoints--;
 			}
 			bot.say(name, text);
-			text = 'Niepoprawnie odpowiedzieli: ';
+			text = messages.incorrectlyAnsweredABCD;
 			for(nick in status.answered){
 				if(status.answered[nick].correct == true) continue;
-				text += status.answered[nick].nick + ' (-'+currentNegpoints+') ';
+				text += sprintf(messages.incorrectAnswerNickABCD, status.answered[nick].nick, currentNegpoints);
 				quiz.addPoint(status.answered[nick].nick, -currentNegpoints);
 				if(currentNegpoints > 1) currentNegpoints--;
 			}
@@ -472,18 +562,18 @@ var quiz = {
 	'sendQuestion': function(){
 		if(status.qNumber == 0) return;
 		var text = anti_google(question.question);
-		bot.say(name, 'Pytanie nr '+status.qNumber+' z '+status.questions.length+': '+text); // zrobić dzielenie na linie
+		bot.say(name, sprintf(messages.question, status.qNumber, status.questions.length, text)); // zrobić dzielenie na linie
 		switch(question.type){
 			case 'REGEX': break;
 			case 'ABCD':
 				var len = 0;
-				var text = '';
+				var text = colors.lineStart;
 				for(var i=0; i<question.answers.length; i++){ // liczenie długości najdłuższej odpowiedzi
 					if(question.answers[i].length > len) len = question.answers[i].length;
 				}
 				for(var i=0; i<question.answers.length; i++){
-					text += String.fromCharCode('A'.charCodeAt(0) + i) + ' ' + question.answers[status.answers[i]];
-					for(var j=question.answers[i].length; j<len; j++){
+					text += colors.main + ' ' + String.fromCharCode('A'.charCodeAt(0) + i) + ': ' + colors.mainS + ' ' + question.answers[status.answers[i]] + colors.mainInvisible;
+					for(var j=question.answers[status.answers[i]].length; j<len; j++){
 						text += '.';
 					}
 					text += ' ';
@@ -492,12 +582,13 @@ var quiz = {
 						text = '';
 					}
 				}
+				bot.say(name, sprintf(messages.timeToAnswerABCD, settings.ABCDTime));
 				break;
 			case 'MULTI':
 				if(status.qActive){
-					bot.say(name, 'Pozostało '+quiz.getMultiUnanswered()+' odpowiedzi i '+quiz.getRemainingTime()+' s czasu.');
+					bot.say(name, sprintf(messages.remainingAnswersMulti, quiz.getMultiUnanswered(), quiz.getRemainingTime()));
 				} else {
-					bot.say(name, 'Ilość odpowiedzi: '+question.answers.length+'. Czas na odpowiedź: '+settings.multiTime+'s');
+					bot.say(name, sprintf(messages.answersMulti, question.answers.length, settings.multiTime));
 				}
 				break;
 		}
@@ -523,18 +614,18 @@ var quiz = {
 			for(var i=0; i<question.ainfo.length; i++){
 				hintText += (question.ainfo.charAt(i) == ' ')?' ':'.';
 			}
-			bot.say(name, 'Podpowiedź: '+hintText);
+			bot.say(name, sprintf(messages.firstHint, hintText));
 			status.hintState++;
 			if(status.currentPoints > 1) status.currentPoints--;
 			return;
 		}
 		if(status.hintState > hintMax){
-			bot.say(name, 'Wyczerpano limit podpowiedzi dla pytania.');
+			bot.say(name, messages.tooManyHints);
 			return;
 		}
 		// sprawdź limit czasu
 		hintText = quiz.hintGen();
-		bot.say(name, 'Podpowiedź '+status.hintState+' z '+hintMax+': '+hintText);
+		bot.say(name, sprintf(messages.hint, status.hintState, hintMax, hintText));
 		status.hintState++;
 		if(status.currentPoints > 1) status.currentPoints--;
 	},
@@ -651,13 +742,13 @@ var quiz = {
 			} else if(quiz.hintState[i]){
 				if(output_state != 1){
 					output_state = 1;
-					buf += String.fromCharCode(3)+"09";
+					buf += colors.hintShown;
 				}
 				buf += question.ainfo.charAt(i); //literki kopiuję tylko jeśli ustawiona flaga
 			} else {
 				if(output_state != 0){
 					output_state = 0;
-					buf += String.fromCharCode(3)+"04";
+					buf += colors.hintHidden;
 				}
 				buf += '.';
 			}
@@ -665,3 +756,4 @@ var quiz = {
 		return buf;
 	}
 }
+
