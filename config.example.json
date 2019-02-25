@@ -1,0 +1,16 @@
+{
+	"nick": "quizbot",
+	"server": "irc.example.com",
+	"options": {
+		"port": 6697,
+		"userName": "quizbot",
+		"realName": "Quiz bot",
+		"secure": true,
+		"certExpired": false,
+		"selfSigned": false,
+		"debug": false,
+		"sasl": true,
+		"password": "sasl-password"
+	},
+	"channels": [ "#quizchan" ]
+}
