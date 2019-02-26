@@ -2,6 +2,7 @@ module.exports.init = initialize;
 module.exports.cmdBinds = getCmdBinds;
 var sprintf = require('sprintf-js').sprintf;
 var fs = require('fs');
+RegExp.prototype.toJSON = function() { return this.source; }; // this is required to export regexps as json
 
 var settings = JSON.parse(fs.readFileSync('quiz-config.json', 'utf8'));
 
@@ -9,40 +10,7 @@ var status = {
 	quizEnabled: false,
 	qNumber: 0,
 	qActive: false,
-	questions: [
-		{
-			'type': 'ABCD',
-			'question': 'test1',
-			'answers': ['test1', 'test2', 'test3', 'testtttt4']
-		},
-		{
-			'type': 'ABCD',
-			'question': 'test1',
-			'answers': ['test1', 'test2', 'test3', 'testtttt4']
-		},
-		{
-			'type': 'ABCD',
-			'question': 'test1',
-			'answers': ['test1', 'test2', 'test3', 'testtttt4']
-		},
-		{
-			'type': 'REGEX',
-			'question': 'bardzo dlugi tekst',
-			'ainfo': 'bardzo dlugi tekst',
-			'regex': /bardzo dlugi tekst/
-		},
-		{
-			'type': 'MULTI',
-			'question': 'od 1 do 4',
-			'answers': ['jeden', 'dwa', 'trzy', 'cztery']
-		},
-		{
-			'type': 'REGEX',
-			'question': 'test',
-			'ainfo': 'test',
-			'regex': /test/
-		}
-	],
+	questions: [],
 	hintState: 0,
 	currentPoints: 0,
 	correctAnswer: false,
@@ -53,7 +21,12 @@ var status = {
 	intervals: [],
 	questionStartedTime: 0,
 	quizStartedTime: 0,
-	lastAnswerTime: 0
+	lastAnswerTime: 0,
+	lastHintTime: 0,
+	lastHintCmdTime: 0,
+	lastQCmdTime: 0,
+	lastStatsCmdTime: 0,
+	lastHelpCmdTime: {}
 };
 
 var question;
@@ -125,6 +98,8 @@ const messageTranslations = {
 		'hint': colors.lineStart + colors.info + ' Podpowiedź %d z %d: ' + colors.hintShown + ' %s ',
 		'tooManyHints': colors.lineStart + colors.error + ' Wyczerpano limit podpowiedzi dla pytania. ',
 		'hintsGiven': ' i ' + colors.infoS + '%d' + colors.info + ' podpowiedzi%s',
+		'hintDelay': colors.lineStart + colors.error + ' Cierpliwości! Ostatnia podpowiedź była ' + colors.errorS + '%s' + colors.error + ' temu. Nie można tak często! ',
+		'settingsInfo': colors.lineStart + colors.main + ' Opóźnienie między pytaniami ' + colors.markStart + '%.0f s' + colors.markEnd + '. Maksymalna ilość odsłonięta w podpowiedzi: ' + colors.markStart + '%d' + colors.markEnd + ' znaków. Minimalny czas między podpowiedziami: ' + colors.markStart + '%.1f s' + colors.markEnd + '. ',
 		'hintsPlural': 'ach',
 		'suffixSingle': '',
 		'suffixCouple': 'y',
@@ -151,7 +126,15 @@ const messageTranslations = {
 		'cmdAddpointSyntax': 'Użycie: ADDPOINT nick ile_punktów',
 		'cmdAddpointLimit': 'Możesz odjąć lub dodać maksymalnie 5 punktów.',
 		'cmdAddpointNewNick': 'Nick %s nie był obecny na liście. Mimo tego kontynuuję.',
-		'cmdAddpoint': 'Dodano %d punkt(ów) dla %s. Ma teraz %d.'
+		'cmdAddpoint': 'Dodano %d punkt(ów) dla %s. Ma teraz %d.',
+		'cmdLoadSyntax': 'Użycie: LOAD plik.json <APPEND>',
+		'cmdLoaded': 'Załadowano %d pytań (łącznie %d)',
+		'cmdCantLoad': 'Jest uruchomiony quiz. Nie można teraz wczytać pytań.',
+		'cmdLoadException': 'Błąd podczas ładowania pliku %s: %s',
+		'cmdSaveSyntax': 'Użycie: SAVE plik.json',
+		'cmdNotOverwriting': 'Plik %s już istnieje. Wstrzymano zapis, aby uniknąć jego uszkodzenia.',
+		'cmdSaveException': 'Błąd podczas zapisu pliku %s: %s',
+		'cmdSaved': 'Zapisano %d pytań do pliku.'
 	},
 	'en': {
 		'currRankHeader': colors.lineStart + colors.main + ' Currently leading: ',
@@ -187,6 +170,8 @@ const messageTranslations = {
 		'hint': colors.lineStart + colors.info + ' Hint %d of %d: ' + colors.hintShown + ' %s ',
 		'tooManyHints': colors.lineStart + colors.error + ' Hint limit reached. ',
 		'hintsGiven': ' and ' + colors.infoS + '%d' + colors.info + ' hint%s',
+		'hintDelay': colors.lineStart + colors.error + ' Be patient! Last hint was given ' + colors.errorS + '%s' + colors.error + ' ago. You\'re too fast! ',
+		'settingsInfo': colors.lineStart + colors.main + ' Delay between questions is ' + colors.markStart + '%.0f s' + colors.markEnd + '. Maximum of ' + colors.markStart + '%d' + colors.markEnd + ' characters can be unveiled in hints. Minimum time between hints is ' + colors.markStart + '%.1f s' + colors.markEnd + '. ',
 		'hintsPlural': 's',
 		'suffixSingle': '',
 		'suffixCouple': 's',
@@ -213,7 +198,15 @@ const messageTranslations = {
 		'cmdAddpointSyntax': 'Syntax: ADDPOINT nick how_many',
 		'cmdAddpointLimit': 'You can\'t add nor subtract more than 5 points.',
 		'cmdAddpointNewNick': 'Nick %s was not present in the scores list. Continuing anyway.',
-		'cmdAddpoint': 'Added %d point(s) for %s. Current score: %d.'
+		'cmdAddpoint': 'Added %d point(s) for %s. Current score: %d.',
+		'cmdLoadSyntax': 'Syntax: LOAD file.json <APPEND>',
+		'cmdLoaded': 'Loaded %d questions (%d in total)',
+		'cmdCantLoad': 'Quiz is currently running. Can\'t load questions now.',
+		'cmdLoadException': 'Error loading file %s: %s',
+		'cmdSaveSyntax': 'Syntax: SAVE file.json',
+		'cmdNotOverwriting': 'File %s already exists. Write aborted in order not to damage the file.',
+		'cmdSaveException': 'Error saving file %s: %s',
+		'cmdSaved': 'Saved %d questions to a file.'
 	}
 };
 
@@ -223,35 +216,49 @@ var listeners = {
 	'message': [
 		function handler(nick, to, text, message){
 			if(to.toLowerCase() != name.toLowerCase()) return;
+			var lowerNick = nick.toLowerCase();
 			if(!status.quizEnabled) return;
 			if(settings.statsDelay != 0 && (text == '!stat' || text == '!stats')){
-				//TODO verify time delay
+				if(timeDiff(status.lastStatsCmdTime) < settings.repeatDelay){
+					return;
+				}
+				status.lastStatsCmdTime = Date.now();
 				bot.say(name, messages.currRankHeader);
 				quiz.printStats(5);
 				bot.say(name, messages.rankFooter);
 				return;
 			}
 			if(text == '!help' || text == '!pomoc' || text == messages.helpCommand){
+				if(lowerNick in status.lastHelpCmdTime && timeDiff(status.lastHelpCmdTime[lowerNick]) < settings.helpDelay){
+					return;
+				}
+				status.lastHelpCmdTime[lowerNick] = Date.now();
 				quiz.sendHelp(nick);
 				return;
 			}
 			quiz.processAnswer(text, nick);
 			if(!status.qActive) return; //following lines should work only with active question
 			if(text == '!pyt' || text == '!przyp'){
+				if(timeDiff(status.lastQCmdTime) < settings.repeatDelay){
+					return;
+				}
+				status.lastQCmdTime = Date.now();
 				switch(question.type){
 					case 'ABCD': return;
 					case 'REGEX': case 'MULTI': break;
 				}
-				//TODO verify time delay
 				quiz.sendQuestion();
 				return;
 			}
 			if(text == '!podp'){
+				if(timeDiff(status.lastHintCmdTime) < settings.repeatDelay){
+					return;
+				}
+				status.lastHintCmdTime = Date.now();
 				switch(question.type){
 					case 'REGEX': break;
 					case 'ABCD': case 'MULTI': return;
 				}
-				//TODO verify time delay
 				quiz.sendHint();
 				return;
 			}
@@ -308,7 +315,7 @@ var cmdBinds = {
 		question = status.questions[status.qNumber-1];
 		bot.say(name, messages.started);
 		bot.say(name, sprintf(messages.helpHint, messages.helpCommand));
-		//send current settings here
+		bot.say(name, sprintf(messages.settingsInfo, settings.delay, settings.hintMax, settings.hintDelay));
 		quiz.firstQuestion();
 		src.send(messages.cmdStarted);
 	},
@@ -331,6 +338,49 @@ var cmdBinds = {
 		if(settings.notifyRankChange){
 			bot.say(name, sprintf(messages.manualRankChanged, nick, points));
 		}
+	},
+	'LOAD': function(src, cmd, args){
+		if(args.length < 1 || args.length > 2 || (args.length == 2 && args[1].toLowerCase() != 'append')){
+			src.send(messages.cmdLoadSyntax);
+			return;
+		}
+		if(status.quizEnabled){
+			src.send(messages.cmdCantLoad);
+			return;
+		}
+		if(args.length == 1){
+			status.questions = [];
+		}
+		try {
+			var newQuestions = JSON.parse(fs.readFileSync(args[0], 'utf8'));
+			for(var i=0; i<newQuestions.length; i++){
+				if(newQuestions[i].type == 'REGEX'){
+					newQuestions[i].regex = new RegExp(newQuestions[i].regex); // restoring regexps from source strings
+				}
+			}
+			status.questions = status.questions.concat(newQuestions);
+		} catch(error){
+			src.send(sprintf(messages.cmdLoadException, args[0], error));
+			return;
+		}
+		src.send(sprintf(messages.cmdLoaded, newQuestions.length, status.questions.length));
+	},
+	'SAVE': function(src, cmd, args){
+		if(args.length != 1){
+			src.send(messages.cmdSaveSyntax);
+			return;
+		}
+		if(fs.existsSync(args[0])){
+			src.send(sprintf(messages.cmdNotOverwriting, args[0]));
+			return;
+		}
+		try {
+			fs.writeFileSync(args[0], JSON.stringify(status.questions));
+		} catch(error){
+			src.send(sprintf(messages.cmdSaveException, args[0], error));
+			return;
+		}
+		src.send(sprintf(messages.cmdSaved, status.questions.length));
 	}
 };
 
@@ -368,9 +418,11 @@ function ordinal(num){
 }
 
 function timeDiff(date){
-	var diff = Date.now() - date;
-	diff /= 1000;
-	return diff + 's';
+	return (Date.now() - date) / 1000;
+}
+
+function formatTimeDiff(date){
+	return timeDiff(date) + ' s';
 }
 
 function suffix(num){
@@ -408,7 +460,7 @@ var quiz = {
 		if(!status.quizEnabled){
 			return;
 		}
-		bot.say(name, sprintf(messages.stopped, timeDiff(status.quizStartedTime), status.qNumber));
+		bot.say(name, sprintf(messages.stopped, formatTimeDiff(status.quizStartedTime), status.qNumber));
 		question = false;
 		status.qNumber = 0;
 		status.quizEnabled = false;
@@ -531,13 +583,13 @@ var quiz = {
 		console.log('process regex');
 		if(!status.qActive){ // late answers
 			if(status.lateAnsCnt < 0 || status.lateAnsCnt > settings.maxLateAns) return; // <0 - it's the first answer, >max - set value exceeded
-			if(Date.now() > status.lastAnswerTime + (settings.maxLateAnsTime * 1000)) return;
+			if(timeDiff(status.lastAnswerTime) > settings.maxLateAnsTime) return;
 			if(nick.toLowerCase() in status.answers) return; // somebody answered second time
 			if(quiz.checkAnswer(message)){
 				var myPoints = (status.currentPoints>1)?(status.currentPoints-1):1;
 				quiz.addPoint(nick, myPoints);
 				var points = quiz.getPoints(nick);
-				bot.say(name, sprintf(messages.consolation, nick, points, suffix(points), ordinal(status.lateAnsCnt+2), timeDiff(status.questionStartedTime), myPoints, suffix(myPoints)));
+				bot.say(name, sprintf(messages.consolation, nick, points, suffix(points), ordinal(status.lateAnsCnt+2), formatTimeDiff(status.questionStartedTime), myPoints, suffix(myPoints)));
 				status.lateAnsCnt++;
 				status.answers[nick.toLowerCase()] = true;
 			}
@@ -546,7 +598,7 @@ var quiz = {
 		if(!quiz.checkAnswer(message)) return;
 		quiz.addPoint(nick, status.currentPoints);
 		var points = quiz.getPoints(nick);
-		bot.say(name, sprintf(messages.correctlyAnswered, nick, points, suffix(points), timeDiff(status.questionStartedTime), quiz.hintInfo(), status.currentPoints, suffix(status.currentPoints)));
+		bot.say(name, sprintf(messages.correctlyAnswered, nick, points, suffix(points), formatTimeDiff(status.questionStartedTime), quiz.hintInfo(), status.currentPoints, suffix(status.currentPoints)));
 		bot.say(name, sprintf(messages.correctAnswer, question.ainfo));
 		
 		status.qActive = 0;
@@ -700,22 +752,25 @@ var quiz = {
 				hintText += (question.ainfo.charAt(i) == ' ')?' ':'.';
 			}
 			bot.say(name, sprintf(messages.firstHint, hintText));
-			status.hintState++;
-			if(status.currentPoints > 1) status.currentPoints--;
-			return;
+		} else {
+			if(status.hintState > hintMax){
+				bot.say(name, messages.tooManyHints);
+				return;
+			}
+			if(timeDiff(status.lastHintTime) < settings.hintDelay){
+				bot.say(name, sprintf(messages.hintDelay, formatTimeDiff(status.lastHintTime)));
+				return;
+			}
+			hintText = quiz.hintGen();
+			bot.say(name, sprintf(messages.hint, status.hintState, hintMax, hintText));
 		}
-		if(status.hintState > hintMax){
-			bot.say(name, messages.tooManyHints);
-			return;
-		}
-		// TODO verify time limit
-		hintText = quiz.hintGen();
-		bot.say(name, sprintf(messages.hint, status.hintState, hintMax, hintText));
+		status.lastHintTime = Date.now();
 		status.hintState++;
 		if(status.currentPoints > 1) status.currentPoints--;
 	},
 	'clearResults': function(){
 		quiz.rank = [];
+		status.lastHelpCmdTime = {};
 	},
 	'addPoint': function(nick, points){
 		var lowerNick = nick.toLowerCase();

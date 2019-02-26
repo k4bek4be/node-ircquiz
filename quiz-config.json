@@ -8,5 +8,8 @@
 	"maxLateAns": 3,
 	"maxLateAnsTime": 10,
 	"hintMax": 10,
-	"language": "en"
+	"language": "pl",
+	"hintDelay": 15,
+	"repeatDelay": 10,
+	"helpDelay": 30
 }
