@@ -1,6 +1,9 @@
 module.exports.init = initialize;
 module.exports.cmdBinds = getCmdBinds;
 var sprintf = require('sprintf-js').sprintf;
+var fs = require('fs');
+
+var settings = JSON.parse(fs.readFileSync('quiz-config.json', 'utf8'));
 
 var status = {
 	quizEnabled: false,
@@ -44,7 +47,7 @@ var status = {
 	currentPoints: 0,
 	correctAnswer: false,
 	answers: [],
-	answered: [], // ABCD: lista nicków, które odpowiedziały; MULTI: lista odpowiedzi, które zostały udzielone
+	answered: [], // ABCD: list of nicks that answered; MULTI: list of answers already given
 	lateAnsCnt: 0,
 	timeouts: [],
 	intervals: [],
@@ -55,24 +58,10 @@ var status = {
 
 var question;
 
-var settings = {
-	statsDelay: 5,
-	initPoints: 5,
-	notifyRankChange: true,
-	multiTime: 20,
-	delay: 4,
-	ABCDTime: 6,
-	maxLateAns: 3,
-	maxLateAnsTime: 10,
-	hintMax: 10,
-	language: 'en'
-};
-
 function initialize(nname, nbot) {
 	name = nname;
 	bot = nbot;
 	addIRCListeners();
-	//wczytać ustawienia
 	console.log('Zaladowano modul quizowy dla '+nname);
 };
 
@@ -205,7 +194,7 @@ var listeners = {
 			if(to.toLowerCase() != name.toLowerCase()) return;
 			if(!status.quizEnabled) return;
 			if(settings.statsDelay != 0 && (text == '!stat' || text == '!stats')){
-				//sprawdź czas
+				//TODO verify time delay
 				bot.say(name, messages.currRankHeader);
 				quiz.printStats(5);
 				bot.say(name, messages.rankFooter);
@@ -216,13 +205,13 @@ var listeners = {
 				return;
 			}
 			quiz.processAnswer(text, nick);
-			if(!status.qActive) return; //kolejne mają działać tylko gdy aktywne pytanie
+			if(!status.qActive) return; //following lines should work only with active question
 			if(text == '!pyt' || text == '!przyp'){
 				switch(question.type){
 					case 'ABCD': return;
 					case 'REGEX': case 'MULTI': break;
 				}
-				//sprawdź czas
+				//TODO verify time delay
 				quiz.sendQuestion();
 				return;
 			}
@@ -231,7 +220,7 @@ var listeners = {
 					case 'REGEX': break;
 					case 'ABCD': case 'MULTI': return;
 				}
-				//sprawdź czas
+				//TODO verify time delay
 				quiz.sendHint();
 				return;
 			}
@@ -258,7 +247,8 @@ var cmdBinds = {
 		quiz.finish();
 		src.send(sprintf(messages.cmdStopped, name));
 	},
-	'HELP': function(src, cmd, args){ // zrobić!
+	'HELP': function(src, cmd, args){
+		console.log('not implemented');
 	},
 	'SKIP': function(src, cmd, args){
 		if(!status.quizEnabled) return;
@@ -287,9 +277,8 @@ var cmdBinds = {
 		question = status.questions[status.qNumber-1];
 		bot.say(name, messages.started);
 		bot.say(name, sprintf(messages.helpHint, '!pomoc'));
-		//pokaż ustawienia
+		//send current settings here
 		quiz.firstQuestion();
-		//zapisz czas początku quizu
 		src.send(messages.cmdStarted);
 	},
 	'ADDPOINT': function(src, cmd, args){
@@ -366,7 +355,6 @@ var quiz = {
 			quiz.finish();
 		}
 		status.questions = [];
-		//del command QUIZ
 	},
 	'stop': function(){
 		if(!status.quizEnabled){
@@ -493,10 +481,10 @@ var quiz = {
 	},
 	'processAnswerRegex': function(message, nick){
 		console.log('process regex');
-		if(!status.qActive){ // odp dodatkowe
-			if(status.lateAnsCnt < 0 || status.lateAnsCnt > settings.maxLateAns) return; // <0 - właściwa odpowiedź, >max - przekroczone ustawienie
+		if(!status.qActive){ // late answers
+			if(status.lateAnsCnt < 0 || status.lateAnsCnt > settings.maxLateAns) return; // <0 - it's the first answer, >max - set value exceeded
 			if(Date.now() > status.lastAnswerTime + (settings.maxLateAnsTime * 1000)) return;
-			if(nick.toLowerCase() in status.answers) return; // ktoś wysłał drugi raz
+			if(nick.toLowerCase() in status.answers) return; // somebody answered second time
 			if(quiz.checkAnswer(message)){
 				var myPoints = (status.currentPoints>1)?(status.currentPoints-1):1;
 				quiz.addPoint(nick, myPoints);
@@ -611,13 +599,13 @@ var quiz = {
 	'sendQuestion': function(){
 		if(status.qNumber == 0) return;
 		var text = anti_google(question.question);
-		bot.say(name, sprintf(messages.question, status.qNumber, status.questions.length, text)); // zrobić dzielenie na linie
+		bot.say(name, sprintf(messages.question, status.qNumber, status.questions.length, text)); // TODO divide long messages
 		switch(question.type){
 			case 'REGEX': break;
 			case 'ABCD':
 				var len = 0;
 				var text = colors.lineStart;
-				for(var i=0; i<question.answers.length; i++){ // liczenie długości najdłuższej odpowiedzi
+				for(var i=0; i<question.answers.length; i++){ // calculate the length of longest answer
 					if(question.answers[i].length > len) len = question.answers[i].length;
 				}
 				for(var i=0; i<question.answers.length; i++){
@@ -659,7 +647,7 @@ var quiz = {
 		var hintMax = quiz.maxWordLength(question.ainfo)-1;
 		if(hintMax > settings.hintMax) hintMax = settings.hintMax;
 		var hintText = '';
-		if(status.hintState == 0){  // pierwsza podpowiedź - tylko ilość literek
+		if(status.hintState == 0){  // first hint: only the letter count
 			for(var i=0; i<question.ainfo.length; i++){
 				hintText += (question.ainfo.charAt(i) == ' ')?' ':'.';
 			}
@@ -672,7 +660,7 @@ var quiz = {
 			bot.say(name, messages.tooManyHints);
 			return;
 		}
-		// sprawdź limit czasu
+		// TODO verify time limit
 		hintText = quiz.hintGen();
 		bot.say(name, sprintf(messages.hint, status.hintState, hintMax, hintText));
 		status.hintState++;
@@ -738,15 +726,14 @@ var quiz = {
 
 		return i;
 	},
-	'hintGen': function() { //generacja podpowiedzi z odsłoniętymi losowymi znakami
+	'hintGen': function() { //generate a hint with random characters unveiled
 		var buf = "";
-		//static bool hstate[512]; - hintState
+
 		var output_state = 1;
 		var curr_word_index = 0;
 		var in_word = false;
 
-		if(status.hintState <= 1){// jest to pierwsze wywołanie dla tego pytania
-	//		hstate[0] = true; //pierwsza literka zawsze widoczna
+		if(status.hintState <= 1){ // first call with this question
 			quiz.hintState = [];
 			in_word = false;
 			for(var i=0; i<question.ainfo.length; i++){
@@ -778,7 +765,7 @@ var quiz = {
 			}
 
 			if(in_word) {
-				var j = quiz.pick_hint_letter(curr_word_index, i - curr_word_index);/////////////////
+				var j = quiz.pick_hint_letter(curr_word_index, i - curr_word_index);
 				if(j >= 0)
 					quiz.hintState[j + curr_word_index] = true;
 			}
@@ -786,14 +773,13 @@ var quiz = {
 
 		for(i=0; i<question.ainfo.length; i++){
 			if(question.ainfo.charAt(i) == ' '){
-				buf += ' '; //spacje kopiuję
-				//continue;
+				buf += ' '; //copy all the spaces
 			} else if(quiz.hintState[i]){
 				if(output_state != 1){
 					output_state = 1;
 					buf += colors.hintShown;
 				}
-				buf += question.ainfo.charAt(i); //literki kopiuję tylko jeśli ustawiona flaga
+				buf += question.ainfo.charAt(i); //copy only unveiled letters
 			} else {
 				if(output_state != 0){
 					output_state = 0;

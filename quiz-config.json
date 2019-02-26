@@ -1,0 +1,12 @@
+{
+	"statsDelay": 5,
+	"initPoints": 5,
+	"notifyRankChange": true,
+	"multiTime": 20,
+	"delay": 4,
+	"ABCDTime": 6,
+	"maxLateAns": 3,
+	"maxLateAnsTime": 10,
+	"hintMax": 10,
+	"language": "en"
+}
