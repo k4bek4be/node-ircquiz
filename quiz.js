@@ -65,6 +65,7 @@ var settings = {
 	maxLateAns: 3,
 	maxLateAnsTime: 10,
 	hintMax: 10,
+	language: 'en'
 };
 
 function initialize(nname, nbot) {
@@ -100,7 +101,7 @@ const colors = {
 	'lineStart': ''
 };
 
-const messages_PL = {
+const messageTranslations.pl = {
 	'currRankHeader': colors.lineStart + colors.main + ' Aktualnie najlepsi: ',
 	'rankHeader': colors.lineStart + colors.main + ' ' + colors.markStart + 'Wyniki' + colors.markEnd + ': ',
 	'rankFooter': colors.lineStart + colors.main + ' Koniec wyników. ',
@@ -148,7 +149,55 @@ const messages_PL = {
 	'cmdAddpoint': 'Dodano %d punkt(ów) dla %s. Ma teraz %d.'
 };
 
-var messages = messages_PL;
+const messageTranslations.en = {
+	'currRankHeader': colors.lineStart + colors.main + ' Currently leading: ',
+	'rankHeader': colors.lineStart + colors.main + ' ' + colors.markStart + 'Results' + colors.markEnd + ': ',
+	'rankFooter': colors.lineStart + colors.main + ' End of results. ',
+	'rankPlace': colors.lineStart + colors.main + ' Place ' + colors.markStart + '%d.' + colors.markEnd + ' ' + colors.mainS + ' %s ' + colors.main + ' ' + colors.markStart + '%d' + colors.markEnd + ' point%s ',
+	'manualStop': colors.lineStart + colors.main + ' Quiz has been stopped by the op! ' + colors.markStart + 'Results' + colors.markEnd + ': ',
+	'manualSkip': colors.lineStart + colors.info + ' Question ' + colors.infoS + '%d' + colors.info + ' skipped by the op. ',
+	'started': colors.lineStart + colors.main + ' Quiz started! ',
+	'helpHint': colors.lineStart + colors.main + ' Don\'t know how to play? Type ' + colors.markStart + '%s' + colors.markEnd + ' :) ',
+	'manualRankChanged': colors.lineStart + colors.info + ' The op has changed score for ' + colors.infoS + '%s' + colors.info + ' by ' + colors.infoS + '%d' + colors.info + '.',
+	'aborted': colors.lineStart + colors.main + ' Quiz aborted :( ' + colors.markStart + 'Results' + colors.markEnd + ': ',
+	'stopped': colors.lineStart + colors.main + ' Quiz finished! Duration: ' + colors.markStart + '%s' + colors.markEnd + ', ' + colors.markStart + '%d' + colors.markEnd + ' questions',
+	'announceFirstQuestion': colors.lineStart + colors.info + ' First question will start after ' + colors.infoS + '%d s' + colors.info + '.',
+	'endOfQuestions': colors.lineStart + colors.info + ' End of questions! ',
+	'announceNextQuestion': colors.lineStart + colors.info + ' Next question will start after ' + colors.infoS + '%.1f s ',
+	'consolation': colors.lineStart + colors.info + ' Consolation prize for ' + colors.infoS + '%s' + colors.info + ' (current score ' + colors.infoS + '%d' + colors.info + ' point%s), who answered correctly as %s, after ' + colors.infoS + '%d' + colors.info + '. ' + colors.infoS + '%d' + colors.info + ' point%s for you. ',
+	'correctlyAnswered': colors.lineStart + colors.infoS + ' %s' + colors.info + ' (current score ' + colors.infoS + '%d' + colors.info + ' point%s) has answered correctly after ' + colors.infoS + '%s' + colors.info + '%s, getting ' + colors.infoS + '%d' + colors.info + ' point%s for it ',
+	'correctAnswer': colors.lineStart + colors.main + ' Correct answer ' + colors.mainS + ' %s ',
+	'correctlyAnsweredMulti': colors.lineStart + colors.main + ' Correct answer: ' + colors.mainS + ' %s ' + colors.info + ' A point for ' + colors.infoS + '%s' + colors.info + '. ',
+	'endOfTimeMulti': colors.lineStart + colors.info + ' End of time. ' + colors.infoS + '%d' + colors.info + ' questions not answered. ',
+	'allAnsweredMulti': colors.lineStart + colors.info + ' All answers guessed! ',
+	'correctlyAnsweredABCD': colors.lineStart + colors.info + ' Answered correctly: ',
+	'correctAnswerABCD': colors.lineStart + colors.main + ' Correct answer: ' + colors.mainS + '%s: %s ',
+	'incorrectlyAnsweredABCD': colors.lineStart + colors.info + ' Answered incorrectly: ',
+	'correctAnswerNickABCD': colors.infoS + '%s ' + colors.info + '(' + colors.infoS + '+%d' + colors.info + ') ',
+	'incorrectAnswerNickABCD': colors.infoSR + '%s ' + colors.info + '(' + colors.infoS + '-%d' + colors.info + ') ',
+	'question': colors.lineStart + colors.main + ' Question ' + colors.markStart + '%d' + colors.markEnd + ' of %d: ' + colors.mainS + ' %s ',
+	'remainingAnswersMulti': colors.lineStart + colors.info + ' ' + colors.infoS + '%d' + colors.info + ' answers and ' + colors.infoS + '%d s' + colors.info + ' of time remaining.',
+	'answersMulti': colors.lineStart + colors.info + ' There are ' + colors.infoS + '%d' + colors.info + ' correct answers. Time to answer: ' + colors.infoS + '%d s ',
+	'timeToAnswerABCD': colors.lineStart + colors.info + ' Time to answer: ' + colors.infoS + '%d s ',
+	'firstHint': colors.lineStart + colors.info + ' Hint: ' + colors.hintHidden + ' %s ',
+	'hint': colors.lineStart + colors.info + ' Hint %d of %d: ' + colors.hintShown + ' %s ',
+	'tooManyHints': colors.lineStart + colors.error + ' Hint limit reached. ',
+	'hintsGiven': ' and ' + colors.infoS + '%d' + colors.info + ' hint%s',
+	'hintsPlural': 's',
+	
+	'cmdStopped': 'Stopped quiz on %s',
+	'cmdNoQuestionActive': 'No question active now. Please wait a moment.',
+	'cmdSkipped': 'You have now skipped question %d.',
+	'cmdAlreadyStarted': 'Already started!',
+	'cmdNoQuestions': 'No questions loaded!',
+	'cmdStarted': 'Started!',
+	'cmdAddpointSyntax': 'Syntax: ADDPOINT nick how_many',
+	'cmdAddpointLimit': 'You can\'t add nor subtract more than 5 points.',
+	'cmdAddpointNewNick': 'Nick %s was not present in the scores list. Continuing anyway.',
+	'cmdAddpoint': 'Added %d point(s) for %s. Current score: %d.'
+};
+
+var messages = messageTranslations[settings.language];
 
 var listeners = {
 	'message': [
