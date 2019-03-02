@@ -129,7 +129,7 @@ const messageTranslations = {
 		'cmdAddpointNewNick': 'Nick %s nie był obecny na liście. Mimo tego kontynuuję.',
 		'cmdAddpoint': 'Dodano %d punkt(ów) dla %s. Ma teraz %d.',
 		'cmdLoadSyntax': 'Użycie: LOAD plik.json <APPEND>',
-		'cmdSpecialLoadSyntax': 'Użycie: LOAD_{DIZZY|MIL|FAM} plik.txt',
+		'cmdSpecialLoadSyntax': 'Użycie: LOAD_{DIZZY|MIL|FAM|C} plik.txt',
 		'cmdLoaded': 'Załadowano %d pytań (łącznie %d)',
 		'cmdCantLoad': 'Jest uruchomiony quiz. Nie można teraz wczytać pytań.',
 		'cmdLoadException': 'Błąd podczas ładowania pliku %s: %s',
@@ -211,7 +211,7 @@ const messageTranslations = {
 		'cmdAddpointNewNick': 'Nick %s was not present in the scores list. Continuing anyway.',
 		'cmdAddpoint': 'Added %d point(s) for %s. Current score: %d.',
 		'cmdLoadSyntax': 'Syntax: LOAD file.json <APPEND>',
-		'cmdSpecialLoadSyntax': 'Syntax: LOAD_{DIZZY|MIL|FAM} file.txt',
+		'cmdSpecialLoadSyntax': 'Syntax: LOAD_{DIZZY|MIL|FAM|C} file.txt',
 		'cmdLoaded': 'Loaded %d questions (%d in total)',
 		'cmdCantLoad': 'Quiz is currently running. Can\'t load questions now.',
 		'cmdLoadException': 'Error loading file %s: %s',
@@ -436,6 +436,17 @@ var cmdBinds = {
 			return;
 		}
 		questions.loadQuestionsFamiliada(status.questions, src, args[0]);
+	},
+	'LOAD_C': function(src, cmd, args){
+		if(args.length != 1){
+			src.send(messages.cmdSpecialLoadSyntax);
+			return;
+		}
+		if(status.quizEnabled){
+			src.send(messages.cmdCantLoad);
+			return;
+		}
+		questions.loadQuestionsCbot(status.questions, src, args[0]);
 	}
 };
 
