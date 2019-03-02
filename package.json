@@ -11,6 +11,7 @@
   "dependencies": {
     "iconv": "^2.3.2",
     "irc": "^0.5.2",
+    "regex-escape": "^3.4.9",
     "sprintf-js": "^1.1.2"
   }
 }

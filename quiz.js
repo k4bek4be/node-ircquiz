@@ -2,6 +2,7 @@ module.exports.init = initialize;
 module.exports.cmdBinds = getCmdBinds;
 var sprintf = require('sprintf-js').sprintf;
 var fs = require('fs');
+var questions = require('./questions');
 RegExp.prototype.toJSON = function() { return this.source; }; // this is required to export regexps as json
 
 var settings = JSON.parse(fs.readFileSync('quiz-config.json', 'utf8'));
@@ -35,7 +36,7 @@ function initialize(nname, nbot) {
 	name = nname;
 	bot = nbot;
 	addIRCListeners();
-	console.log('Zaladowano modul quizowy dla '+nname);
+	console.log(sprintf(messages.loaded, nname));
 };
 
 function getCmdBinds(){
@@ -128,13 +129,23 @@ const messageTranslations = {
 		'cmdAddpointNewNick': 'Nick %s nie był obecny na liście. Mimo tego kontynuuję.',
 		'cmdAddpoint': 'Dodano %d punkt(ów) dla %s. Ma teraz %d.',
 		'cmdLoadSyntax': 'Użycie: LOAD plik.json <APPEND>',
+		'cmdSpecialLoadSyntax': 'Użycie: LOAD_{DIZZY|MIL|FAM} plik.txt',
 		'cmdLoaded': 'Załadowano %d pytań (łącznie %d)',
 		'cmdCantLoad': 'Jest uruchomiony quiz. Nie można teraz wczytać pytań.',
 		'cmdLoadException': 'Błąd podczas ładowania pliku %s: %s',
 		'cmdSaveSyntax': 'Użycie: SAVE plik.json',
 		'cmdNotOverwriting': 'Plik %s już istnieje. Wstrzymano zapis, aby uniknąć jego uszkodzenia.',
 		'cmdSaveException': 'Błąd podczas zapisu pliku %s: %s',
-		'cmdSaved': 'Zapisano %d pytań do pliku.'
+		'cmdSaved': 'Zapisano %d pytań do pliku.',
+
+		'loaded': 'Załadowano moduł quizowy dla %s',
+		'regexNotMatching': 'Ostrzeżenie: odpowiedź "%s" nie pasuje do wyrażenia "%s"! Zweryfikuj to.',
+		'answerTooLong': 'Odpowiedź "%s" na pytanie "%s" jest zbyt długa! Skracam.',
+		'tooManyAnswers': 'Zbyt dużo odpowiedzi na pytanie "%s". Usuwam nadmiarowe.',
+		'answerMissing': 'Linia %d: spodziewałem się odpowiedzi. Ignoruję pytanie "%s" i tę linię.',
+		'questionMissing': 'Linia %d: spodziewałem się pytania. Ignoruję linię.',
+		'lastQuestionUnanswered': 'Ostrzeżenie: ostatnie pytanie nie miało odpowiedzi.',
+		'lastQuestionMissingAnswers': 'Ostrzeżenie: ostatnie pytanie "%s" miało za mało odpowiedzi. Zignorowano je. Sprawdź plik!'
 	},
 	'en': {
 		'currRankHeader': colors.lineStart + colors.main + ' Currently leading: ',
@@ -200,17 +211,28 @@ const messageTranslations = {
 		'cmdAddpointNewNick': 'Nick %s was not present in the scores list. Continuing anyway.',
 		'cmdAddpoint': 'Added %d point(s) for %s. Current score: %d.',
 		'cmdLoadSyntax': 'Syntax: LOAD file.json <APPEND>',
+		'cmdSpecialLoadSyntax': 'Syntax: LOAD_{DIZZY|MIL|FAM} file.txt',
 		'cmdLoaded': 'Loaded %d questions (%d in total)',
 		'cmdCantLoad': 'Quiz is currently running. Can\'t load questions now.',
 		'cmdLoadException': 'Error loading file %s: %s',
 		'cmdSaveSyntax': 'Syntax: SAVE file.json',
 		'cmdNotOverwriting': 'File %s already exists. Write aborted in order not to damage the file.',
 		'cmdSaveException': 'Error saving file %s: %s',
-		'cmdSaved': 'Saved %d questions to a file.'
+		'cmdSaved': 'Saved %d questions to a file.',
+
+		'loaded': 'Quiz module loaded for %s',
+		'regexNotMatching': 'Warning: the answer "%s" does not match the given expression "%s"! Verify this.',
+		'answerTooLong': 'The answer "%s" for question "%s" is too long! Truncating.',
+		'tooManyAnswers': 'Too many answers for question "%s". Truncating.',
+		'answerMissing': 'Line %d: answer expected. Ignoring the question "%s" and this line.',
+		'questionMissing': 'Line %d: question expected. Ignoring the line.',
+		'lastQuestionUnanswered': 'Warning: last question did not have an answer.',
+		'lastQuestionMissingAnswers': 'Warning: last question "%s" had not enough answers. This question was ignored. Check the file!'
 	}
 };
 
 var messages = messageTranslations[settings.language];
+questions.setMessages(messages);
 
 var listeners = {
 	'message': [
@@ -304,7 +326,7 @@ var cmdBinds = {
 			src.send(messages.cmdAlreadyStarted);
 			return;
 		}
-		if(status.questions == false){
+		if(status.questions == false || status.questions.length == 0){
 			src.send(messages.cmdNoQuestions);
 			return;
 		}
@@ -381,6 +403,39 @@ var cmdBinds = {
 			return;
 		}
 		src.send(sprintf(messages.cmdSaved, status.questions.length));
+	},
+	'LOAD_DIZZY': function(src, cmd, args){
+		if(args.length != 1){
+			src.send(messages.cmdSpecialLoadSyntax);
+			return;
+		}
+		if(status.quizEnabled){
+			src.send(messages.cmdCantLoad);
+			return;
+		}
+		questions.loadQuestionsDizzy(status.questions, src, args[0]);
+	},
+	'LOAD_MIL': function(src, cmd, args){
+		if(args.length != 1){
+			src.send(messages.cmdSpecialLoadSyntax);
+			return;
+		}
+		if(status.quizEnabled){
+			src.send(messages.cmdCantLoad);
+			return;
+		}
+		questions.loadQuestionsMilioner(status.questions, src, args[0]);
+	},
+	'LOAD_FAM': function(src, cmd, args){
+		if(args.length != 1){
+			src.send(messages.cmdSpecialLoadSyntax);
+			return;
+		}
+		if(status.quizEnabled){
+			src.send(messages.cmdCantLoad);
+			return;
+		}
+		questions.loadQuestionsFamiliada(status.questions, src, args[0]);
 	}
 };
 
@@ -485,6 +540,7 @@ var quiz = {
 	},
 	'nextQuestion': function(){
 		quiz.clearTimers();
+		status.qActive = false;
 		if(status.qNumber == status.questions.length){
 			bot.say(name, messages.endOfQuestions);
 		} else {
@@ -601,7 +657,6 @@ var quiz = {
 		bot.say(name, sprintf(messages.correctlyAnswered, nick, points, suffix(points), formatTimeDiff(status.questionStartedTime), quiz.hintInfo(), status.currentPoints, suffix(status.currentPoints)));
 		bot.say(name, sprintf(messages.correctAnswer, question.ainfo));
 		
-		status.qActive = 0;
 		status.answers[nick.toLowerCase()] = true;
 		status.lastAnswerTime = Date.now();
 		status.lateAnsCnt = 0;
