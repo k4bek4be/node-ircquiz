@@ -5,6 +5,11 @@ module.exports.loadQuestionsMilioner = loadQuestionsMilioner;
 module.exports.loadQuestionsFamiliada = loadQuestionsFamiliada;
 module.exports.loadQuestionsCbot = loadQuestionsCbot;
 module.exports.loadQuestionsKtrivia = loadQuestionsKtrivia;
+module.exports.saveQuestionsDizzy = saveQuestionsDizzy;
+module.exports.saveQuestionsMilioner = saveQuestionsMilioner;
+module.exports.saveQuestionsFamiliada = saveQuestionsFamiliada;
+module.exports.saveQuestionsCbot = saveQuestionsCbot;
+module.exports.saveQuestionsKtrivia = saveQuestionsKtrivia;
 
 String.prototype.escapeDiacritics = function(){ // removing Polish characters; add other languages if needed
     return this.replace(/ą/g, 'a').replace(/Ą/g, 'A')
@@ -20,6 +25,7 @@ String.prototype.escapeDiacritics = function(){ // removing Polish characters; a
 
 var RegexEscape = require("regex-escape");
 var sprintf = require('sprintf-js').sprintf;
+var fs = require('fs');
 
 var messages = {};
 
@@ -57,7 +63,7 @@ function loadQuestionsDizzy(questions, src, filename){
 	try {
 		var question = false;
 		var answer = false;
-		var lines = require('fs').readFileSync(filename, 'utf-8').split('\n');
+		var lines = fs.readFileSync(filename, 'utf-8').split('\n');
 		for(var i=0; i<lines.length; i++){
 			var line = lines[i];
 			if(line.trim().length == 0){
@@ -100,12 +106,35 @@ function loadQuestionsDizzy(questions, src, filename){
 	src.send(sprintf(messages.cmdLoaded, newQuestions.length, questions.length));
 }
 
+function saveQuestionsDizzy(questions, src, filename){
+	var counter = 0;
+	try {
+		var data = '';
+		for(var i=0; i<questions.length; i++){
+			var question = questions[i];
+			if(question.type != 'REGEX') continue;
+			counter++;
+			if(data.length > 0) data += '\n';
+			data += 'pyt ' + question.question + '\nodp ' + question.ainfo.escapeDiacritics();
+		}
+		if(fs.existsSync(filename)){
+			data = '\n'+data;
+			src.send(sprintf(message.cmdSaveAppending, filename));
+		}
+		fs.appendFileSync(filename, data);
+	} catch(e){
+		src.send(sprintf(messages.cmdSaveException, filename, e));
+		return;
+	}
+	src.send(sprintf(messages.cmdSaved, counter));
+}
+
 function loadQuestionsMilioner(questions, src, filename){
 	var newQuestions = [];
 	try {
 		var question = false;
 		var answers = [];
-		var lines = require('fs').readFileSync(filename, 'utf-8').split('\n');
+		var lines = fs.readFileSync(filename, 'utf-8').split('\n');
 		for(var i=0; i<lines.length; i++){
 			var line = lines[i];
 			if(line.trim().length == 0){
@@ -138,12 +167,38 @@ function loadQuestionsMilioner(questions, src, filename){
 	src.send(sprintf(messages.cmdLoaded, newQuestions.length, questions.length));
 }
 
+function saveQuestionsMilioner(questions, src, filename){
+	var counter = 0;
+	try {
+		var data = '';
+		for(var i=0; i<questions.length; i++){
+			var question = questions[i];
+			if(question.type != 'ABCD') continue;
+			counter++;
+			if(data.length > 0) data += '\n';
+			data += question.question;
+			for(var j=0; j<question.answers.length; j++){
+				data += '\n' + question.answers[j];
+			}
+		}
+		if(fs.existsSync(filename)){
+			data = '\n'+data;
+			src.send(sprintf(message.cmdSaveAppending, filename));
+		}
+		fs.appendFileSync(filename, data);
+	} catch(e){
+		src.send(sprintf(messages.cmdSaveException, filename, e));
+		return;
+	}
+	src.send(sprintf(messages.cmdSaved, counter));
+}
+
 function loadQuestionsFamiliada(questions, src, filename){
 	var newQuestions = [];
 	try {
 		var question = false;
 		var answers = [];
-		var lines = require('fs').readFileSync(filename, 'utf-8').split('\n');
+		var lines = fs.readFileSync(filename, 'utf-8').split('\n');
 		for(var i=0; i<lines.length; i++){
 			var line = lines[i];
 			if(line.trim().length == 0){
@@ -175,12 +230,38 @@ function loadQuestionsFamiliada(questions, src, filename){
 	src.send(sprintf(messages.cmdLoaded, newQuestions.length, questions.length));
 }
 
+function saveQuestionsFamiliada(questions, src, filename){
+	var counter = 0;
+	try {
+		var data = '';
+		for(var i=0; i<questions.length; i++){
+			var question = questions[i];
+			if(question.type != 'MULTI') continue;
+			counter++;
+			if(data.length > 0) data += '\n';
+			data += question.question + '\n';
+			for(var j=0; j<question.answers.length; j++){
+				data += (j>0?'*':'') + question.answers[j].escapeDiacritics();
+			}
+		}
+		if(fs.existsSync(filename)){
+			data = '\n'+data;
+			src.send(sprintf(message.cmdSaveAppending, filename));
+		}
+		fs.appendFileSync(filename, data);
+	} catch(e){
+		src.send(sprintf(messages.cmdSaveException, filename, e));
+		return;
+	}
+	src.send(sprintf(messages.cmdSaved, counter));
+}
+
 function loadQuestionsCbot(questions, src, filename){
 	var newQuestions = [];
 	try {
 		var question = false;
 		var answers = [];
-		var lines = require('fs').readFileSync(filename, 'utf-8').split('\n');
+		var lines = fs.readFileSync(filename, 'utf-8').split('\n');
 		for(var i=0; i<lines.length; i++){
 			var line = lines[i];
 			if(line.trim().length == 0 || line.startsWith('#')){
@@ -259,12 +340,44 @@ function loadQuestionsCbot(questions, src, filename){
 	src.send(sprintf(messages.cmdLoaded, newQuestions.length, questions.length));
 }
 
+function saveQuestionsCbot(questions, src, filename){
+	var counter = 0;
+	try {
+		var data = '';
+		for(var i=0; i<questions.length; i++){
+			var question = questions[i];
+			counter++;
+			if(data.length > 0) data += '\n';
+			switch(question.type){
+				case 'REGEX':
+					data += question.question + ';' + question.regex.source + ';' + question.ainfo;
+					break;
+				case 'ABCD':
+					data += ';m;' + question.question + ';' + question.answers.join(';');
+					break;
+				case 'MULTI':
+					data += ';f;' + question.question + ';' + question.answers.join(';');
+					break;
+			}
+		}
+		if(fs.existsSync(filename)){
+			data = '\n'+data;
+			src.send(sprintf(message.cmdSaveAppending, filename));
+		}
+		fs.appendFileSync(filename, data);
+	} catch(e){
+		src.send(sprintf(messages.cmdSaveException, filename, e));
+		return;
+	}
+	src.send(sprintf(messages.cmdSaved, counter));
+}
+
 function loadQuestionsKtrivia(questions, src, filename){
 	var newQuestions = [];
 	try {
 		var question = false;
 		var answers = [];
-		var lines = require('fs').readFileSync(filename, 'utf-8').split('\n');
+		var lines = fs.readFileSync(filename, 'utf-8').split('\n');
 		for(var i=0; i<lines.length; i++){
 			var line = lines[i];
 			if(line.trim().length == 0){
@@ -323,4 +436,37 @@ function loadQuestionsKtrivia(questions, src, filename){
 	Array.prototype.push.apply(questions, newQuestions);
 	src.send(sprintf(messages.cmdLoaded, newQuestions.length, questions.length));
 }
+
+function saveQuestionsKtrivia(questions, src, filename){
+	var counter = 0;
+	try {
+		var data = '';
+		for(var i=0; i<questions.length; i++){
+			var question = questions[i];
+			counter++;
+			if(data.length > 0) data += '\n';
+			switch(question.type){
+				case 'REGEX':
+					data += 'd|||' + question.question.escapeDiacritics() + '|' + question.ainfo.escapeDiacritics();
+					break;
+				case 'ABCD':
+					data += 'c|||' + question.question + '|' + question.answers.join('|');
+					break;
+				case 'MULTI':
+					data += 'm|||' + question.question + '|' + question.answers.join('|');
+					break;
+			}
+		}
+		if(fs.existsSync(filename)){
+			data = '\n'+data;
+			src.send(sprintf(message.cmdSaveAppending, filename));
+		}
+		fs.appendFileSync(filename, data);
+	} catch(e){
+		src.send(sprintf(messages.cmdSaveException, filename, e));
+		return;
+	}
+	src.send(sprintf(messages.cmdSaved, counter));
+}
+
 

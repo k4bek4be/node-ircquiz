@@ -87,6 +87,19 @@ var cmdBinds = {
 			bot.say(chan, args.join(' '));
 		}
 	],
+	'DIE': [
+		function(src, cmd, args){
+			if(args.length > 0){
+				var reason = args.join(' ');
+			} else {
+				var reason = 'Quit';
+			}
+			bot.disconnect(reason);
+			setTimeout(function(){
+				process.exit();
+			}, 5000);
+		}
+	],
 	'QUIZ': [
 		function(src, cmd, args){
 			if(args.length < 2){

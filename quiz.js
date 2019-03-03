@@ -15,7 +15,6 @@ String.prototype.escapeDiacritics = function(){ // removing Polish characters; a
 		.replace(/ś/g, 's').replace(/Ś/g, 'S')
 		.replace(/ż/g, 'z').replace(/Ż/g, 'Z')
 		.replace(/ź/g, 'z').replace(/Ź/g, 'Z');
-	console.log('Source: '+this+', escaped: '+out);
 	return out;
 }
 
@@ -148,9 +147,11 @@ const messageTranslations = {
 		'cmdCantLoad': 'Jest uruchomiony quiz. Nie można teraz wczytać pytań.',
 		'cmdLoadException': 'Błąd podczas ładowania pliku %s: %s',
 		'cmdSaveSyntax': 'Użycie: SAVE plik.json',
+		'cmdSpecialSaveSyntax': 'Użycie: SAVE_{DIZZY|MIL|FAM|C} plik.txt',
 		'cmdNotOverwriting': 'Plik %s już istnieje. Wstrzymano zapis, aby uniknąć jego uszkodzenia.',
 		'cmdSaveException': 'Błąd podczas zapisu pliku %s: %s',
 		'cmdSaved': 'Zapisano %d pytań do pliku.',
+		'cmdSaveAppending': 'Plik %s już istnieje, próbuję dopisać nowe dane na końcu.',
 
 		'loaded': 'Załadowano moduł quizowy dla %s',
 		'regexNotMatching': 'Ostrzeżenie: odpowiedź "%s" nie pasuje do wyrażenia "%s"! Zweryfikuj to.',
@@ -230,9 +231,11 @@ const messageTranslations = {
 		'cmdCantLoad': 'Quiz is currently running. Can\'t load questions now.',
 		'cmdLoadException': 'Error loading file %s: %s',
 		'cmdSaveSyntax': 'Syntax: SAVE file.json',
+		'cmdSpecialSaveSyntax': 'Syntax: SAVE_{DIZZY|MIL|FAM|C} file.txt',
 		'cmdNotOverwriting': 'File %s already exists. Write aborted in order not to damage the file.',
 		'cmdSaveException': 'Error saving file %s: %s',
 		'cmdSaved': 'Saved %d questions to a file.',
+		'cmdSaveAppending': 'File %s already exists, trying to append new data',
 
 		'loaded': 'Quiz module loaded for %s',
 		'regexNotMatching': 'Warning: the answer "%s" does not match the given expression "%s"! Verify this.',
@@ -429,6 +432,13 @@ var cmdBinds = {
 		}
 		questions.loadQuestionsDizzy(status.questions, src, args[0]);
 	},
+	'SAVE_DIZZY': function(src, cmd, args){
+		if(args.length != 1){
+			src.send(messages.cmdSpecialSaveSyntax);
+			return;
+		}
+		questions.saveQuestionsDizzy(status.questions, src, args[0]);
+	},
 	'LOAD_MIL': function(src, cmd, args){
 		if(args.length != 1){
 			src.send(messages.cmdSpecialLoadSyntax);
@@ -439,6 +449,13 @@ var cmdBinds = {
 			return;
 		}
 		questions.loadQuestionsMilioner(status.questions, src, args[0]);
+	},
+	'SAVE_MIL': function(src, cmd, args){
+		if(args.length != 1){
+			src.send(messages.cmdSpecialSaveSyntax);
+			return;
+		}
+		questions.saveQuestionsMilioner(status.questions, src, args[0]);
 	},
 	'LOAD_FAM': function(src, cmd, args){
 		if(args.length != 1){
@@ -451,6 +468,13 @@ var cmdBinds = {
 		}
 		questions.loadQuestionsFamiliada(status.questions, src, args[0]);
 	},
+	'SAVE_FAM': function(src, cmd, args){
+		if(args.length != 1){
+			src.send(messages.cmdSpecialSaveSyntax);
+			return;
+		}
+		questions.saveQuestionsFamiliada(status.questions, src, args[0]);
+	},
 	'LOAD_C': function(src, cmd, args){
 		if(args.length != 1){
 			src.send(messages.cmdSpecialLoadSyntax);
@@ -462,6 +486,13 @@ var cmdBinds = {
 		}
 		questions.loadQuestionsCbot(status.questions, src, args[0]);
 	},
+	'SAVE_C': function(src, cmd, args){
+		if(args.length != 1){
+			src.send(messages.cmdSpecialSaveSyntax);
+			return;
+		}
+		questions.saveQuestionsCbot(status.questions, src, args[0]);
+	},
 	'LOAD_K': function(src, cmd, args){
 		if(args.length != 1){
 			src.send(messages.cmdSpecialLoadSyntax);
@@ -472,6 +503,13 @@ var cmdBinds = {
 			return;
 		}
 		questions.loadQuestionsKtrivia(status.questions, src, args[0]);
+	},
+	'SAVE_K': function(src, cmd, args){
+		if(args.length != 1){
+			src.send(messages.cmdSpecialSaveSyntax);
+			return;
+		}
+		questions.saveQuestionsKtrivia(status.questions, src, args[0]);
 	}
 };
 
