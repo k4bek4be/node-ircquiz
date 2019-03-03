@@ -6,12 +6,15 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "k4be",
+  "license": "GPL-3.0",
   "dependencies": {
-    "iconv": "^2.3.2",
     "irc": "^0.5.2",
     "regex-escape": "^3.4.9",
     "sprintf-js": "^1.1.2"
+  },
+  "repository": {
+  	"type": "git",
+  	"url": "https://github.com/k4bek4be/node-ircquiz"
   }
 }
