@@ -4,6 +4,19 @@ module.exports.loadQuestionsDizzy = loadQuestionsDizzy;
 module.exports.loadQuestionsMilioner = loadQuestionsMilioner;
 module.exports.loadQuestionsFamiliada = loadQuestionsFamiliada;
 module.exports.loadQuestionsCbot = loadQuestionsCbot;
+module.exports.loadQuestionsKtrivia = loadQuestionsKtrivia;
+
+String.prototype.escapeDiacritics = function(){ // removing Polish characters; add other languages if needed
+    return this.replace(/ą/g, 'a').replace(/Ą/g, 'A')
+        .replace(/ć/g, 'c').replace(/Ć/g, 'C')
+        .replace(/ę/g, 'e').replace(/Ę/g, 'E')
+        .replace(/ł/g, 'l').replace(/Ł/g, 'L')
+        .replace(/ń/g, 'n').replace(/Ń/g, 'N')
+        .replace(/ó/g, 'o').replace(/Ó/g, 'O')
+        .replace(/ś/g, 's').replace(/Ś/g, 'S')
+        .replace(/ż/g, 'z').replace(/Ż/g, 'Z')
+        .replace(/ź/g, 'z').replace(/Ź/g, 'Z');
+}
 
 var RegexEscape = require("regex-escape");
 var sprintf = require('sprintf-js').sprintf;
@@ -57,13 +70,13 @@ function loadQuestionsDizzy(questions, src, filename){
 						'type': 'REGEX',
 						'question': question,
 						'ainfo': answer,
-						'regex': new RegExp(RegexEscape(answer))
+						'regex': new RegExp(RegexEscape(answer.escapeDiacritics()), 'i')
 					};
 					addQuestion(newQuestions, src, newQuestion);
 					question = false;
 					answer = false;
 				} else {
-					src.send(sprintf(messages.answerMissing, i, question));
+					src.send(sprintf(messages.answerMissing, (i+1), question));
 					question = false;
 					continue;
 				}
@@ -71,7 +84,7 @@ function loadQuestionsDizzy(questions, src, filename){
 				if(line.startsWith('pyt ')){
 					question = line.substring(4).trim();
 				} else {
-					src.send(sprintf(messages.questionMissing, i));
+					src.send(sprintf(messages.questionMissing, (i+1)));
 					continue;
 				}
 			}
@@ -177,21 +190,22 @@ function loadQuestionsCbot(questions, src, filename){
 			if(args[0] == ''){
 				switch(args[1]){
 					case 'd':
-						if(args.length != 4){
-							src.send('Incorrect parameters for d in line '+i);
+						if(args.length < 4){
+							src.send('Incorrect parameters for d in line '+(i+1));
 							break;
 						}
+						var args = line.split(';', 4);
 						var newQuestion = {
 							'type': 'REGEX',
 							'question': args[2],
 							'ainfo': args[3],
-							'regex': new RegExp(RegexEscape(args[3]))
+							'regex': new RegExp(RegexEscape(args[3].escapeDiacritics()), 'i')
 						};
 						addQuestion(newQuestions, src, newQuestion);
 						break;
 					case 'm':
 						if(args.length < 7){
-							src.send('Incorrect parameters for m in line '+i);
+							src.send('Incorrect parameters for m in line '+(i+1));
 							break;
 						}
 						var answers = args.slice(3);
@@ -204,7 +218,7 @@ function loadQuestionsCbot(questions, src, filename){
 						break;
 					case 'f':
 						if(args.length < 4){
-							src.send('Incorrect parameters for m in line '+i);
+							src.send('Incorrect parameters for f in line '+(i+1));
 							break;
 						}
 						var answers = args.slice(3);
@@ -216,25 +230,90 @@ function loadQuestionsCbot(questions, src, filename){
 						addQuestion(newQuestions, src, newQuestion);
 						break;
 					default:
-						src.send('Incorect type "'+args[1]+'" in line '+i);
+						src.send('Incorect type "'+args[1]+'" in line '+(i+1));
 						break;
 				}
 			} else {
 				try {
 					if(args.length != 3){
-						src.send('Incorrect parameters in line '+i);
+						src.send('Incorrect parameters in line '+(i+1));
 						continue;
 					}
 					var newQuestion = {
 						'type': 'REGEX',
 						'question': args[0],
 						'ainfo': args[2],
-						'regex': new RegExp(args[1])
+						'regex': new RegExp(args[1].escapeDiacritics(), 'i')
 					}
 					addQuestion(newQuestions, src, newQuestion);
 				} catch(e){
-					src.send('Error processing line '+i+': '+e);
+					src.send('Error processing line '+(i+1)+': '+e);
 				}
+			}
+		}
+	} catch(e){
+		src.send(sprintf(messages.cmdLoadException, filename, e));
+		return;
+	}
+	Array.prototype.push.apply(questions, newQuestions);
+	src.send(sprintf(messages.cmdLoaded, newQuestions.length, questions.length));
+}
+
+function loadQuestionsKtrivia(questions, src, filename){
+	var newQuestions = [];
+	try {
+		var question = false;
+		var answers = [];
+		var lines = require('fs').readFileSync(filename, 'utf-8').split('\n');
+		for(var i=0; i<lines.length; i++){
+			var line = lines[i];
+			if(line.trim().length == 0){
+				continue;
+			}
+			var args = line.split('|');
+			switch(args[0]){
+				case 'd':
+					if(args.length != 5){
+						src.send('Incorrect parameters for d in line '+(i+1));
+						break;
+					}
+					var newQuestion = {
+						'type': 'REGEX',
+						'question': args[3],
+						'ainfo': args[4],
+						'regex': new RegExp(RegexEscape(args[4].escapeDiacritics()), 'i')
+					};
+					addQuestion(newQuestions, src, newQuestion);
+					break;
+				case 'c':
+					if(args.length != 8){
+						src.send('Incorrect parameters for c in line '+(i+1));
+						break;
+					}
+					var answers = args.slice(4);
+					var newQuestion = {
+						'type': 'ABCD',
+						'question': args[3],
+						'answers': answers
+					};
+					addQuestion(newQuestions, src, newQuestion);
+					break;
+				case 'm':
+					if(args.length < 5){
+						src.send('Incorrect parameters for m in line '+(i+1));
+						break;
+					}
+					var answers = args.slice(4);
+					var newQuestion = {
+						'type': 'MULTI',
+						'question': args[3],
+						'answers': answers
+					};
+					addQuestion(newQuestions, src, newQuestion);
+					break;
+				default:
+					src.send('Incorect type "'+args[0]+'" in line '+(i+1));
+					break;
 			}
 		}
 	} catch(e){

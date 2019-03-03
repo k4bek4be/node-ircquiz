@@ -5,6 +5,20 @@ var fs = require('fs');
 var questions = require('./questions');
 RegExp.prototype.toJSON = function() { return this.source; }; // this is required to export regexps as json
 
+String.prototype.escapeDiacritics = function(){ // removing Polish characters; add other languages if needed
+	var out = this.replace(/ą/g, 'a').replace(/Ą/g, 'A')
+		.replace(/ć/g, 'c').replace(/Ć/g, 'C')
+		.replace(/ę/g, 'e').replace(/Ę/g, 'E')
+		.replace(/ł/g, 'l').replace(/Ł/g, 'L')
+		.replace(/ń/g, 'n').replace(/Ń/g, 'N')
+		.replace(/ó/g, 'o').replace(/Ó/g, 'O')
+		.replace(/ś/g, 's').replace(/Ś/g, 'S')
+		.replace(/ż/g, 'z').replace(/Ż/g, 'Z')
+		.replace(/ź/g, 'z').replace(/Ź/g, 'Z');
+	console.log('Source: '+this+', escaped: '+out);
+	return out;
+}
+
 var settings = JSON.parse(fs.readFileSync('quiz-config.json', 'utf8'));
 
 var status = {
@@ -377,7 +391,7 @@ var cmdBinds = {
 			var newQuestions = JSON.parse(fs.readFileSync(args[0], 'utf8'));
 			for(var i=0; i<newQuestions.length; i++){
 				if(newQuestions[i].type == 'REGEX'){
-					newQuestions[i].regex = new RegExp(newQuestions[i].regex); // restoring regexps from source strings
+					newQuestions[i].regex = new RegExp(newQuestions[i].regex.escapeDiacritics(), 'i'); // restoring regexps from source strings
 				}
 			}
 			status.questions = status.questions.concat(newQuestions);
@@ -447,14 +461,21 @@ var cmdBinds = {
 			return;
 		}
 		questions.loadQuestionsCbot(status.questions, src, args[0]);
+	},
+	'LOAD_K': function(src, cmd, args){
+		if(args.length != 1){
+			src.send(messages.cmdSpecialLoadSyntax);
+			return;
+		}
+		if(status.quizEnabled){
+			src.send(messages.cmdCantLoad);
+			return;
+		}
+		questions.loadQuestionsKtrivia(status.questions, src, args[0]);
 	}
 };
 
 function anti_google(text){
-	return text;
-};
-
-function removeSpecialChars(text){
 	return text;
 };
 
@@ -514,6 +535,8 @@ var quiz = {
 		}
 		status.intervals = [];
 		status.timeouts = [];
+		status.lastHintCmdTime = 0;
+		status.lastHintTime = 0;
 	},
 	'cleanup': function(){
 		if(status.quizEnabled){
@@ -701,7 +724,7 @@ var quiz = {
 		var i = 0;
 		for(; i<question.answers.length; i++){
 			if(status.answered[i] == true) continue;
-			if(removeSpecialChars(question.answers[i].toLowerCase()) == removeSpecialChars(message.toLowerCase())){
+			if(question.answers[i].toLowerCase().escapeDiacritics() == message.toLowerCase().escapeDiacritics()){
 				status.answered[i] = true;
 				found = true;
 				break;
@@ -865,8 +888,7 @@ var quiz = {
 		return settings.multiTime - ((Date.now() - status.questionStartedTime) / 1000);
 	},
 	'checkAnswer': function(ans){
-		answer = removeSpecialChars(ans);
-		if(ans.match(question.regex)){
+		if(ans.escapeDiacritics().match(question.regex)){
 			return true;
 		}
 		return false;
