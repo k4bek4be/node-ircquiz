@@ -31,4 +31,4 @@ Ten projekt jest jeszcze nieukończony. Mam nadzieję, że pomimo tego będzie d
 1. Wpisz `node bot.js`, aby przetestować konfigurację. Ta komenda uruchomi bota.
 1. Kliknij prawym przyciskiem na ikonę pliku bot.js i wybierz "Otwórz za pomocą...".
 1. Znajdź i wybierz node.exe.
-1. Kliknij OK. Od teraz bot powinien uruchamiać się po dwukrotnym kliknięciu bot.exe.
+1. Kliknij OK. Od teraz bot powinien uruchamiać się po dwukrotnym kliknięciu bot.js.
