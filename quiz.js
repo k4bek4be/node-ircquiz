@@ -105,6 +105,7 @@ const messageTranslations = {
 		'correctAnswerNickABCD': colors.infoS + '%s ' + colors.info + '(' + colors.infoS + '+%d' + colors.info + ') ',
 		'incorrectAnswerNickABCD': colors.infoSR + '%s ' + colors.info + '(' + colors.infoS + '-%d' + colors.info + ') ',
 		'question': colors.lineStart + colors.main + ' Pytanie nr ' + colors.markStart + '%d' + colors.markEnd + ' z %d: ' + colors.mainS + ' %s ',
+		'shuffleQuestion': colors.lineStart + colors.main + ' Pytanie nr ' + colors.markStart + '%d' + colors.markEnd + ' z %d - odgadnij słowo z kategorii ' + colors.markStart + '%s' + colors.markEnd + ': ' + colors.mainS + ' %s ',
 		'remainingAnswersMulti': colors.lineStart + colors.info + ' Pozostało ' + colors.infoS + '%d' + colors.info + ' odpowiedzi i ' + colors.infoS + '%d s' + colors.info + ' czasu.',
 		'answersMulti': colors.lineStart + colors.info + ' Ilość odpowiedzi: ' + colors.infoS + '%d' + colors.info + '. Czas na odpowiedź: ' + colors.infoS + '%d s ',
 		'timeToAnswerABCD': colors.lineStart + colors.info + ' Czas na odpowiedź: ' + colors.infoS + '%d s ',
@@ -152,7 +153,11 @@ const messageTranslations = {
 		'cmdSaveException': 'Błąd podczas zapisu pliku %s: %s',
 		'cmdSaved': 'Zapisano %d pytań do pliku.',
 		'cmdSaveAppending': 'Plik %s już istnieje, próbuję dopisać nowe dane na końcu.',
-
+		'cmdCantClear': 'Jest uruchomiony quiz. Nie można teraz zniszczyć pytań.',
+		'cmdCleared': 'Zniszczono pytania w pamięci.',
+		'cmdCantShuffle': 'Jest uruchomiony quiz. Nie można teraz wymieszać pytań.',
+		'cmdShuffled': 'Wymieszano pytania w pamięci.',
+		
 		'loaded': 'Załadowano moduł quizowy dla %s',
 		'regexNotMatching': 'Ostrzeżenie: odpowiedź "%s" nie pasuje do wyrażenia "%s"! Zweryfikuj to.',
 		'answerTooLong': 'Odpowiedź "%s" na pytanie "%s" jest zbyt długa! Skracam.',
@@ -189,6 +194,7 @@ const messageTranslations = {
 		'correctAnswerNickABCD': colors.infoS + '%s ' + colors.info + '(' + colors.infoS + '+%d' + colors.info + ') ',
 		'incorrectAnswerNickABCD': colors.infoSR + '%s ' + colors.info + '(' + colors.infoS + '-%d' + colors.info + ') ',
 		'question': colors.lineStart + colors.main + ' Question ' + colors.markStart + '%d' + colors.markEnd + ' of %d: ' + colors.mainS + ' %s ',
+		'shuffleQuestion': colors.lineStart + colors.main + ' Question ' + colors.markStart + '%d' + colors.markEnd + ' of %d - guess a word in the category of ' + colors.markStart + '%s' + colors.markEnd + ': ' + colors.mainS + ' %s ',
 		'remainingAnswersMulti': colors.lineStart + colors.info + ' ' + colors.infoS + '%d' + colors.info + ' answers and ' + colors.infoS + '%d s' + colors.info + ' of time remaining.',
 		'answersMulti': colors.lineStart + colors.info + ' There are ' + colors.infoS + '%d' + colors.info + ' correct answers. Time to answer: ' + colors.infoS + '%d s ',
 		'timeToAnswerABCD': colors.lineStart + colors.info + ' Time to answer: ' + colors.infoS + '%d s ',
@@ -236,6 +242,10 @@ const messageTranslations = {
 		'cmdSaveException': 'Error saving file %s: %s',
 		'cmdSaved': 'Saved %d questions to a file.',
 		'cmdSaveAppending': 'File %s already exists, trying to append new data',
+		'cmdCantClear': 'Quiz is currently running. Can\'t destroy the questions now.',
+		'cmdCleared': 'Questions in memory have been destroyed.',
+		'cmdCantShuffle': 'Quiz is currently running. Can\'t shuffle the questions now.',
+		'cmdShuffled': 'Questions in memory have been shuffled.',
 
 		'loaded': 'Quiz module loaded for %s',
 		'regexNotMatching': 'Warning: the answer "%s" does not match the given expression "%s"! Verify this.',
@@ -296,7 +306,7 @@ var listeners = {
 				status.lastHintCmdTime = Date.now();
 				switch(question.type){
 					case 'REGEX': break;
-					case 'ABCD': case 'MULTI': return;
+					case 'ABCD': case 'MULTI': case 'SHUFFLE': return;
 				}
 				quiz.sendHint();
 				return;
@@ -323,6 +333,22 @@ var cmdBinds = {
 		bot.say(name, messages.manualStop);
 		quiz.finish();
 		src.send(sprintf(messages.cmdStopped, name));
+	},
+	'CLEAR': function(src, cmd, args){
+		if(status.quizEnabled){
+			src.send(messages.cmdCantClear);
+			return;
+		}
+		status.questions = [];
+		src.send(messages.cmdCleared);
+	},
+	'SHUFFLE': function(src, cmd, args){
+		if(status.quizEnabled){
+			src.send(messages.cmdCantShuffle);
+			return;
+		}
+		status.questions = shuffle(status.questions);
+		src.send(messages.cmdShuffled);
 	},
 	'HELP': function(src, cmd, args){
 		console.log('not implemented');
@@ -557,6 +583,10 @@ function suffix(num){
 	return messages.suffixPlural;
 }
 
+function shuffle(arr){
+	return arr.sort(function(){ return 0.5-Math.random() });
+}
+
 var quiz = {
 	'rank': [],
 	'compareRanks': function(a,b){
@@ -701,6 +731,7 @@ var quiz = {
 			case 'REGEX': quiz.processAnswerRegex(message, nick); break;
 			case 'ABCD': quiz.processAnswerABCD(message, nick); break;
 			case 'MULTI': quiz.processAnswerMulti(message, nick); break;
+			case 'SHUFFLE': quiz.processAnswerShuffle(message, nick); break;
 		}
 	},
 	'hintInfo': function(){
@@ -733,6 +764,17 @@ var quiz = {
 		status.lastAnswerTime = Date.now();
 		status.lateAnsCnt = 0;
 		quiz.nextQuestion();
+	},
+	'processAnswerShuffle': function(message, nick){
+		if(!status.qActive) return;
+		console.log('process shuffle');
+		if(question.answer.toLowerCase().escapeDiacritics() == message.toLowerCase().escapeDiacritics()){
+			quiz.addPoint(nick, status.currentPoints);
+			var points = quiz.getPoints(nick);
+			bot.say(name, sprintf(messages.correctlyAnswered, nick, points, suffix(points), formatTimeDiff(status.questionStartedTime), '', status.currentPoints, suffix(status.currentPoints)));
+			bot.say(name, sprintf(messages.correctAnswer, question.answer));
+			quiz.nextQuestion();
+		}
 	},
 	'processAnswerABCD': function(message, nick){
 		if(!status.qActive) return;
@@ -815,6 +857,14 @@ var quiz = {
 		}
 		quiz.nextQuestion();
 	},
+	'shuffleText': function(text){
+		var iter = 0;
+		do {
+			var res = shuffle(text.split('')).join('');
+			iter++;
+		} while(res == text && iter < 20); // try to avoid an unshuffled result
+		return res;
+	},
 	'letterInRange': function(letter, max){
 		if(!max) return false;
 		max--;
@@ -826,7 +876,11 @@ var quiz = {
 	'sendQuestion': function(){
 		if(status.qNumber == 0) return;
 		var text = anti_google(question.question);
-		bot.say(name, sprintf(messages.question, status.qNumber, status.questions.length, text)); // TODO divide long messages
+		if(question.type != 'SHUFFLE'){
+			bot.say(name, sprintf(messages.question, status.qNumber, status.questions.length, text)); // TODO divide long messages
+		} else {
+			bot.say(name, sprintf(messages.shuffleQuestion, status.qNumber, status.questions.length, text, quiz.shuffleText(question.answer)));
+		}
 		switch(question.type){
 			case 'REGEX': break;
 			case 'ABCD':

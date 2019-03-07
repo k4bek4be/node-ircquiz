@@ -52,7 +52,7 @@ function addQuestion(questions, src, newQuestion){
 				}
 			}
 			break;
-		case 'MULTI': break;
+		case 'MULTI': case 'SHUFFLE': break;
 		default: throw 'Unknown question type!'; break;
 	}
 	questions.push(newQuestion);
@@ -310,6 +310,19 @@ function loadQuestionsCbot(questions, src, filename){
 						};
 						addQuestion(newQuestions, src, newQuestion);
 						break;
+					case 's':
+						if(args.length < 3){
+							src.send('Incorrect parameters for s in line '+(i+1));
+							break;
+						}
+						var args = line.split(';', 4);
+						var newQuestion = {
+							'type': 'SHUFFLE',
+							'question': args[2],
+							'answer': args[3]
+						};
+						addQuestion(newQuestions, src, newQuestion);
+						break;
 					default:
 						src.send('Incorect type "'+args[1]+'" in line '+(i+1));
 						break;
@@ -358,6 +371,9 @@ function saveQuestionsCbot(questions, src, filename){
 				case 'MULTI':
 					data += ';f;' + question.question + ';' + question.answers.join(';');
 					break;
+				case 'SHUFFLE':
+					data += ';s;' + question.question + ';' + question.answer;
+					break;
 			}
 		}
 		if(fs.existsSync(filename)){
@@ -394,7 +410,8 @@ function loadQuestionsKtrivia(questions, src, filename){
 						'type': 'REGEX',
 						'question': args[3],
 						'ainfo': args[4],
-						'regex': new RegExp(RegexEscape(args[4].escapeDiacritics()), 'i')
+						'regex': new RegExp(RegexEscape(args[4].escapeDiacritics()), 'i'),
+						'author': args[1]
 					};
 					addQuestion(newQuestions, src, newQuestion);
 					break;
@@ -407,7 +424,8 @@ function loadQuestionsKtrivia(questions, src, filename){
 					var newQuestion = {
 						'type': 'ABCD',
 						'question': args[3],
-						'answers': answers
+						'answers': answers,
+						'author': args[1]
 					};
 					addQuestion(newQuestions, src, newQuestion);
 					break;
@@ -420,7 +438,21 @@ function loadQuestionsKtrivia(questions, src, filename){
 					var newQuestion = {
 						'type': 'MULTI',
 						'question': args[3],
-						'answers': answers
+						'answers': answers,
+						'author': args[1]
+					};
+					addQuestion(newQuestions, src, newQuestion);
+					break;
+				case 'x':
+					if(args.length != 5){
+						src.send('Incorrect parameters for x in line '+(i+1));
+						break;
+					}
+					var newQuestion = {
+						'type': 'SHUFFLE',
+						'question': args[2],
+						'answer': args[4],
+						'author': args[1]
 					};
 					addQuestion(newQuestions, src, newQuestion);
 					break;
@@ -445,15 +477,23 @@ function saveQuestionsKtrivia(questions, src, filename){
 			var question = questions[i];
 			counter++;
 			if(data.length > 0) data += '\n';
+			if(question.author === undefined){
+				var author = '';
+			} else {
+				var author = question.author;
+			}
 			switch(question.type){
 				case 'REGEX':
-					data += 'd|||' + question.question.escapeDiacritics() + '|' + question.ainfo.escapeDiacritics();
+					data += 'd|' + author + '||' + question.question.escapeDiacritics() + '|' + question.ainfo.escapeDiacritics();
 					break;
 				case 'ABCD':
-					data += 'c|||' + question.question + '|' + question.answers.join('|');
+					data += 'c|' + author + '||' + question.question + '|' + question.answers.join('|');
 					break;
 				case 'MULTI':
-					data += 'm|||' + question.question + '|' + question.answers.join('|');
+					data += 'm|' + author + '||' + question.question + '|' + question.answers.join('|');
+					break;
+				case 'SHUFFLE':
+					data += 'x|' + author + '|' + question.question + '|@|' + question.answer;
 					break;
 			}
 		}
