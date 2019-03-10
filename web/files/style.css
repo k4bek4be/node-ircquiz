@@ -1,0 +1,11 @@
+.disabled {
+	background-color: red;
+}
+
+.enabled {
+	background-color: green;
+}
+
+td {
+	border: 1px solid black;
+}

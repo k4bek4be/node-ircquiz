@@ -2,14 +2,19 @@
 	"statsDelay": 5,
 	"initPoints": 5,
 	"notifyRankChange": true,
-	"multiTime": 20,
+	"multiTime": 25,
 	"delay": 4,
-	"ABCDTime": 6,
+	"ABCDTime": 12,
 	"maxLateAns": 3,
 	"maxLateAnsTime": 10,
 	"hintMax": 10,
 	"language": "pl",
 	"hintDelay": 15,
 	"repeatDelay": 10,
-	"helpDelay": 30
+	"helpDelay": 30,
+	"http": {
+		"port" : 12345,
+		"login": "login",
+		"password": "password"
+	}
 }

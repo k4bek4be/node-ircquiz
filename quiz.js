@@ -3,6 +3,8 @@ module.exports.cmdBinds = getCmdBinds;
 var sprintf = require('sprintf-js').sprintf;
 var fs = require('fs');
 var questions = require('./questions');
+var web = require('./web');
+
 RegExp.prototype.toJSON = function() { return this.source; }; // this is required to export regexps as json
 
 String.prototype.escapeDiacritics = function(){ // removing Polish characters; add other languages if needed
@@ -20,11 +22,14 @@ String.prototype.escapeDiacritics = function(){ // removing Polish characters; a
 
 var settings = JSON.parse(fs.readFileSync('quiz-config.json', 'utf8'));
 
+web.setSettings(settings);
+
 var status = {
 	quizEnabled: false,
 	qNumber: 0,
 	qActive: false,
 	questions: [],
+	question: false,
 	hintState: 0,
 	currentPoints: 0,
 	correctAnswer: false,
@@ -43,7 +48,7 @@ var status = {
 	lastHelpCmdTime: {}
 };
 
-var question;
+web.setStatus(status);
 
 function initialize(nname, nbot) {
 	name = nname;
@@ -292,7 +297,7 @@ var listeners = {
 					return;
 				}
 				status.lastQCmdTime = Date.now();
-				switch(question.type){
+				switch(status.question.type){
 					case 'ABCD': return;
 					case 'REGEX': case 'MULTI': break;
 				}
@@ -304,7 +309,7 @@ var listeners = {
 					return;
 				}
 				status.lastHintCmdTime = Date.now();
-				switch(question.type){
+				switch(status.question.type){
 					case 'REGEX': break;
 					case 'ABCD': case 'MULTI': case 'SHUFFLE': return;
 				}
@@ -375,9 +380,10 @@ var cmdBinds = {
 		}
 		status.quizEnabled = true;
 		status.qNumber = 1;
+		status.qActive = 0;
 		status.hintState = 0;
 		status.currentPoints = settings.initPoints;
-		question = status.questions[status.qNumber-1];
+		status.question = status.questions[status.qNumber-1];
 		bot.say(name, messages.started);
 		bot.say(name, sprintf(messages.helpHint, messages.helpCommand));
 		bot.say(name, sprintf(messages.settingsInfo, settings.delay, settings.hintMax, settings.hintDelay));
@@ -618,7 +624,7 @@ var quiz = {
 			return;
 		}
 		bot.say(name, sprintf(messages.stopped, formatTimeDiff(status.quizStartedTime), status.qNumber));
-		question = false;
+		status.question = false;
 		status.qNumber = 0;
 		status.quizEnabled = false;
 		quiz.clearResults();
@@ -664,7 +670,7 @@ var quiz = {
 			return;
 		}
 		status.qNumber++;
-		question = status.questions[status.qNumber-1];
+		status.question = status.questions[status.qNumber-1];
 		status.hintState = 0;
 		quiz.initQuestion();
 		quiz.sendQuestion();
@@ -676,11 +682,11 @@ var quiz = {
 		status.answered = [];
 		status.correctAnswer = false;
 		status.questionStartedTime = Date.now();
-		if(question.type == 'ABCD'){
-			for(var i=0; i<question.answers.length; i++){
+		if(status.question.type == 'ABCD'){
+			for(var i=0; i<status.question.answers.length; i++){
 				do {
 					var ok = 1;
-					status.answers[i] = getRandomInt(0, question.answers.length-1);
+					status.answers[i] = getRandomInt(0, status.question.answers.length-1);
 					console.log('i: '+i+', random: '+status.answers[i]);
 					for(var j=0; j<i; j++){
 						if(status.answers[i] == status.answers[j]) ok = 0;
@@ -696,8 +702,8 @@ var quiz = {
 			}
 			status.timeouts['ABCDFinish'] = setTimeout(quiz.signFinishABCD, settings.ABCDTime*1000);
 		}
-		if(question.type == 'MULTI'){
-			for(var i=0; i<question.answers.length; i++){
+		if(status.question.type == 'MULTI'){
+			for(var i=0; i<status.question.answers.length; i++){
 				status.answered[i] = false;
 			}
 			status.timeouts['MultiFinish'] = setTimeout(quiz.signFinishMulti, settings.multiTime*1000);
@@ -727,7 +733,7 @@ var quiz = {
 	},
 	'processAnswer': function(message, nick){
 		console.log('process');
-		switch(question.type){
+		switch(status.question.type){
 			case 'REGEX': quiz.processAnswerRegex(message, nick); break;
 			case 'ABCD': quiz.processAnswerABCD(message, nick); break;
 			case 'MULTI': quiz.processAnswerMulti(message, nick); break;
@@ -758,7 +764,7 @@ var quiz = {
 		quiz.addPoint(nick, status.currentPoints);
 		var points = quiz.getPoints(nick);
 		bot.say(name, sprintf(messages.correctlyAnswered, nick, points, suffix(points), formatTimeDiff(status.questionStartedTime), quiz.hintInfo(), status.currentPoints, suffix(status.currentPoints)));
-		bot.say(name, sprintf(messages.correctAnswer, question.ainfo));
+		bot.say(name, sprintf(messages.correctAnswer, status.question.ainfo));
 		
 		status.answers[nick.toLowerCase()] = true;
 		status.lastAnswerTime = Date.now();
@@ -768,11 +774,11 @@ var quiz = {
 	'processAnswerShuffle': function(message, nick){
 		if(!status.qActive) return;
 		console.log('process shuffle');
-		if(question.answer.toLowerCase().escapeDiacritics() == message.toLowerCase().escapeDiacritics()){
+		if(status.question.answer.toLowerCase().escapeDiacritics() == message.toLowerCase().escapeDiacritics()){
 			quiz.addPoint(nick, status.currentPoints);
 			var points = quiz.getPoints(nick);
 			bot.say(name, sprintf(messages.correctlyAnswered, nick, points, suffix(points), formatTimeDiff(status.questionStartedTime), '', status.currentPoints, suffix(status.currentPoints)));
-			bot.say(name, sprintf(messages.correctAnswer, question.answer));
+			bot.say(name, sprintf(messages.correctAnswer, status.question.answer));
 			quiz.nextQuestion();
 		}
 	},
@@ -785,7 +791,7 @@ var quiz = {
 		if(!status.qActive) return;
 		
 		var char = message.charAt(0);
-		if(!quiz.letterInRange(char, question.answers.length)) return;
+		if(!quiz.letterInRange(char, status.question.answers.length)) return;
 		var code = message.toLowerCase().charCodeAt(0);
 		code -= 'a'.charCodeAt(0);
 		if(code == status.correctAnswer) correct = true;
@@ -802,18 +808,18 @@ var quiz = {
 		console.log('process multi');
 		var found = false;
 		var i = 0;
-		for(; i<question.answers.length; i++){
+		for(; i<status.question.answers.length; i++){
 			if(status.answered[i] == true) continue;
-			if(question.answers[i].toLowerCase().escapeDiacritics() == message.toLowerCase().escapeDiacritics()){
+			if(status.question.answers[i].toLowerCase().escapeDiacritics() == message.toLowerCase().escapeDiacritics()){
 				status.answered[i] = true;
 				found = true;
 				break;
 			}
 		}
 		if(!found) return;
-		bot.say(name, sprintf(messages.correctlyAnsweredMulti, question.answers[i], nick));
+		bot.say(name, sprintf(messages.correctlyAnsweredMulti, status.question.answers[i], nick));
 		quiz.addPoint(nick, 1);
-		for(i=0; i<question.answers.length; i++){
+		for(i=0; i<status.question.answers.length; i++){
 			if(status.answered[i] == false) return;
 		}
 		quiz.signFinishMulti(0);
@@ -835,9 +841,9 @@ var quiz = {
 		if(currentNegpoints > 1) currentNegpoints--;
 		var text = messages.correctlyAnsweredABCD;
 		status.qActive = 0;
-		if(question.type == 'ABCD'){
+		if(status.question.type == 'ABCD'){
 			var char = String.fromCharCode('A'.charCodeAt(0) + status.correctAnswer);
-			bot.say(name, sprintf(messages.correctAnswerABCD, char, question.answers[0]));
+			bot.say(name, sprintf(messages.correctAnswerABCD, char, status.question.answers[0]));
 			for(nick in status.answered){
 				if(status.answered[nick].correct != true) continue;
 				text += sprintf(messages.correctAnswerNickABCD, status.answered[nick].nick, currentPoints);
@@ -875,27 +881,27 @@ var quiz = {
 	},
 	'sendQuestion': function(){
 		if(status.qNumber == 0) return;
-		var text = anti_google(question.question);
-		if(question.type != 'SHUFFLE'){
+		var text = anti_google(status.question.question);
+		if(status.question.type != 'SHUFFLE'){
 			bot.say(name, sprintf(messages.question, status.qNumber, status.questions.length, text)); // TODO divide long messages
 		} else {
-			bot.say(name, sprintf(messages.shuffleQuestion, status.qNumber, status.questions.length, text, quiz.shuffleText(question.answer)));
+			bot.say(name, sprintf(messages.shuffleQuestion, status.qNumber, status.questions.length, text, quiz.shuffleText(status.question.answer)));
 		}
-		switch(question.type){
+		switch(status.question.type){
 			case 'REGEX': break;
 			case 'ABCD':
 				var len = 0;
 				var text = colors.lineStart;
-				for(var i=0; i<question.answers.length; i++){ // calculate the length of longest answer
-					if(question.answers[i].length > len) len = question.answers[i].length;
+				for(var i=0; i<status.question.answers.length; i++){ // calculate the length of longest answer
+					if(status.question.answers[i].length > len) len = status.question.answers[i].length;
 				}
-				for(var i=0; i<question.answers.length; i++){
-					text += colors.main + ' ' + String.fromCharCode('A'.charCodeAt(0) + i) + ': ' + colors.mainS + ' ' + question.answers[status.answers[i]] + colors.mainInvisible;
-					for(var j=question.answers[status.answers[i]].length; j<len; j++){
+				for(var i=0; i<status.question.answers.length; i++){
+					text += colors.main + ' ' + String.fromCharCode('A'.charCodeAt(0) + i) + ': ' + colors.mainS + ' ' + status.question.answers[status.answers[i]] + colors.mainInvisible;
+					for(var j=status.question.answers[status.answers[i]].length; j<len; j++){
 						text += '.';
 					}
 					text += ' ';
-					if(i%2 == 1 || i == question.answers.length - 1){
+					if(i%2 == 1 || i == status.question.answers.length - 1){
 						bot.say(name, text);
 						text = '';
 					}
@@ -906,7 +912,7 @@ var quiz = {
 				if(status.qActive){
 					bot.say(name, sprintf(messages.remainingAnswersMulti, quiz.getMultiUnanswered(), quiz.getRemainingTime()));
 				} else {
-					bot.say(name, sprintf(messages.answersMulti, question.answers.length, settings.multiTime));
+					bot.say(name, sprintf(messages.answersMulti, status.question.answers.length, settings.multiTime));
 				}
 				break;
 		}
@@ -925,12 +931,12 @@ var quiz = {
 		return maxLen;
 	},
 	'sendHint': function(){
-		var hintMax = quiz.maxWordLength(question.ainfo)-1;
+		var hintMax = quiz.maxWordLength(status.question.ainfo)-1;
 		if(hintMax > settings.hintMax) hintMax = settings.hintMax;
 		var hintText = '';
 		if(status.hintState == 0){  // first hint: only the letter count
-			for(var i=0; i<question.ainfo.length; i++){
-				hintText += (question.ainfo.charAt(i) == ' ')?' ':'.';
+			for(var i=0; i<status.question.ainfo.length; i++){
+				hintText += (status.question.ainfo.charAt(i) == ' ')?' ':'.';
 			}
 			bot.say(name, sprintf(messages.firstHint, hintText));
 		} else {
@@ -980,7 +986,7 @@ var quiz = {
 		return settings.multiTime - ((Date.now() - status.questionStartedTime) / 1000);
 	},
 	'checkAnswer': function(ans){
-		if(ans.escapeDiacritics().match(question.regex)){
+		if(ans.escapeDiacritics().match(status.question.regex)){
 			return true;
 		}
 		return false;
@@ -1019,27 +1025,27 @@ var quiz = {
 		if(status.hintState <= 1){ // first call with this question
 			quiz.hintState = [];
 			in_word = false;
-			for(var i=0; i<question.ainfo.length; i++){
+			for(var i=0; i<status.question.ainfo.length; i++){
 				quiz.hintState[i] = false;
-				if(!in_word && (question.ainfo.charAt(i) != ' ')) {
+				if(!in_word && (status.question.ainfo.charAt(i) != ' ')) {
 					quiz.hintState[i] = true;
 					in_word = true;
 				}
 
-				if(in_word && (question.ainfo.charAt(i) == ' ')) {
+				if(in_word && (status.question.ainfo.charAt(i) == ' ')) {
 					in_word = false;
 				}
 			}
 		} else {
 			in_word = false;
 
-			for(i=0; i<question.ainfo.length; i++){
-				if(!in_word && (question.ainfo.charAt(i) != ' ')) {
+			for(i=0; i<status.question.ainfo.length; i++){
+				if(!in_word && (status.question.ainfo.charAt(i) != ' ')) {
 					curr_word_index = i;
 					in_word = true;
 				}
 
-				if(in_word && (question.ainfo.charAt(i) == ' ')) {
+				if(in_word && (status.question.ainfo.charAt(i) == ' ')) {
 					var j = quiz.pick_hint_letter(curr_word_index, i - curr_word_index);
 					if(j >= 0)
 						quiz.hintState[j + curr_word_index] = true;
@@ -1054,15 +1060,15 @@ var quiz = {
 			}
 		}
 
-		for(i=0; i<question.ainfo.length; i++){
-			if(question.ainfo.charAt(i) == ' '){
+		for(i=0; i<status.question.ainfo.length; i++){
+			if(status.question.ainfo.charAt(i) == ' '){
 				buf += ' '; //copy all the spaces
 			} else if(quiz.hintState[i]){
 				if(output_state != 1){
 					output_state = 1;
 					buf += colors.hintShown;
 				}
-				buf += question.ainfo.charAt(i); //copy only unveiled letters
+				buf += status.question.ainfo.charAt(i); //copy only unveiled letters
 			} else {
 				if(output_state != 0){
 					output_state = 0;
@@ -1074,4 +1080,6 @@ var quiz = {
 		return buf;
 	}
 }
+
+web.setQuiz(quiz);
 
