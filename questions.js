@@ -100,10 +100,11 @@ function loadQuestionsDizzy(questions, src, filename){
 		}
 	} catch(e){
 		src.send(sprintf(messages.cmdLoadException, filename, e));
-		return;
+		return false;
 	}
 	Array.prototype.push.apply(questions, newQuestions);
 	src.send(sprintf(messages.cmdLoaded, newQuestions.length, questions.length));
+	return true;
 }
 
 function saveQuestionsDizzy(questions, src, filename){
@@ -124,9 +125,10 @@ function saveQuestionsDizzy(questions, src, filename){
 		fs.appendFileSync(filename, data);
 	} catch(e){
 		src.send(sprintf(messages.cmdSaveException, filename, e));
-		return;
+		return false;
 	}
 	src.send(sprintf(messages.cmdSaved, counter));
+	return true;
 }
 
 function loadQuestionsMilioner(questions, src, filename){
@@ -161,10 +163,11 @@ function loadQuestionsMilioner(questions, src, filename){
 		}
 	} catch(e){
 		src.send(sprintf(messages.cmdLoadException, filename, e));
-		return;
+		return false;
 	}
 	Array.prototype.push.apply(questions, newQuestions);
 	src.send(sprintf(messages.cmdLoaded, newQuestions.length, questions.length));
+	return true;
 }
 
 function saveQuestionsMilioner(questions, src, filename){
@@ -188,9 +191,10 @@ function saveQuestionsMilioner(questions, src, filename){
 		fs.appendFileSync(filename, data);
 	} catch(e){
 		src.send(sprintf(messages.cmdSaveException, filename, e));
-		return;
+		return false;
 	}
 	src.send(sprintf(messages.cmdSaved, counter));
+	return true;
 }
 
 function loadQuestionsFamiliada(questions, src, filename){
@@ -224,10 +228,11 @@ function loadQuestionsFamiliada(questions, src, filename){
 		}
 	} catch(e){
 		src.send(sprintf(messages.cmdLoadException, filename, e));
-		return;
+		return false;
 	}
 	Array.prototype.push.apply(questions, newQuestions);
 	src.send(sprintf(messages.cmdLoaded, newQuestions.length, questions.length));
+	return true;
 }
 
 function saveQuestionsFamiliada(questions, src, filename){
@@ -251,9 +256,10 @@ function saveQuestionsFamiliada(questions, src, filename){
 		fs.appendFileSync(filename, data);
 	} catch(e){
 		src.send(sprintf(messages.cmdSaveException, filename, e));
-		return;
+		return false;
 	}
 	src.send(sprintf(messages.cmdSaved, counter));
+	return true;
 }
 
 function loadQuestionsCbot(questions, src, filename){
@@ -347,10 +353,11 @@ function loadQuestionsCbot(questions, src, filename){
 		}
 	} catch(e){
 		src.send(sprintf(messages.cmdLoadException, filename, e));
-		return;
+		return false;
 	}
 	Array.prototype.push.apply(questions, newQuestions);
 	src.send(sprintf(messages.cmdLoaded, newQuestions.length, questions.length));
+	return true;
 }
 
 function saveQuestionsCbot(questions, src, filename){
@@ -383,9 +390,10 @@ function saveQuestionsCbot(questions, src, filename){
 		fs.appendFileSync(filename, data);
 	} catch(e){
 		src.send(sprintf(messages.cmdSaveException, filename, e));
-		return;
+		return false;
 	}
 	src.send(sprintf(messages.cmdSaved, counter));
+	return true;
 }
 
 function loadQuestionsKtrivia(questions, src, filename){
@@ -463,10 +471,11 @@ function loadQuestionsKtrivia(questions, src, filename){
 		}
 	} catch(e){
 		src.send(sprintf(messages.cmdLoadException, filename, e));
-		return;
+		return false;
 	}
 	Array.prototype.push.apply(questions, newQuestions);
 	src.send(sprintf(messages.cmdLoaded, newQuestions.length, questions.length));
+	return true;
 }
 
 function saveQuestionsKtrivia(questions, src, filename){
@@ -504,9 +513,10 @@ function saveQuestionsKtrivia(questions, src, filename){
 		fs.appendFileSync(filename, data);
 	} catch(e){
 		src.send(sprintf(messages.cmdSaveException, filename, e));
-		return;
+		return false;
 	}
 	src.send(sprintf(messages.cmdSaved, counter));
+	return true;
 }
 
 

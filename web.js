@@ -1,10 +1,12 @@
 module.exports.setStatus = setStatus;
 module.exports.setSettings = setSettings;
 module.exports.setQuiz = setQuiz;
+module.exports.setCommands = setCommands;
 
 var status = {};
 var settings = {};
 var quiz = {};
+var commands = {};
 
 var http = require('http');
 var fs = require('fs');
@@ -23,6 +25,10 @@ function setSettings(newSettings){
 	http.createServer(processRequest).listen(settings.http.port);
 }
 
+function setCommands(newCommands){
+	commands = newCommands;
+}
+
 function processRequest(req, res){
 	if(!checkAuth(req)){
 		res.writeHead(401,{'WWW-Authenticate':'Basic realm=Authorization required'});
@@ -35,7 +41,6 @@ function processRequest(req, res){
 			var filename = './web/' + path[1] + '/' + path[2];
 			serveFile(res, filename);
 		} else if(req.url.startsWith('/modules/')){
-			console.log(req.url);
 			var modname = req.url.split('/')[2];
 			serveModule(modname, req, res);
 		}
@@ -47,7 +52,7 @@ var modules = {
 		httpPageHeaderFooter(res, '', [], 'main');
 	},
 	'showStatus': function(req, res){
-		httpPageHeaderFooter(res, '', ['status'], 'showStatus');
+		httpPageHeaderFooter(res, '', ['status', 'commands'], 'showStatus');
 	},
 	'status': function(req, res){
 		res.writeHead(200,{'Content-Type':'application/json'});
@@ -60,8 +65,10 @@ function serveModule(modname, req, res){
 		if(modname in modules){
 			modules[modname](req, res); // internal module
 		} else {
-			var module = require('./web/'+modname.split('/')[0]+'.js');
-			module.init(status, settings, quiz);
+			var modfile = './web/'+modname.split('/')[0]+'.js';
+			delete require.cache[require.resolve(modfile)];
+			var module = require(modfile);
+			module.init(status, settings, quiz, commands);
 			module.run(req, res); // external module
 		}
 	} catch(e){

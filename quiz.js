@@ -22,8 +22,6 @@ String.prototype.escapeDiacritics = function(){ // removing Polish characters; a
 
 var settings = JSON.parse(fs.readFileSync('quiz-config.json', 'utf8'));
 
-web.setSettings(settings);
-
 var status = {
 	quizEnabled: false,
 	qNumber: 0,
@@ -47,8 +45,6 @@ var status = {
 	lastStatsCmdTime: 0,
 	lastHelpCmdTime: {}
 };
-
-web.setStatus(status);
 
 function initialize(nname, nbot) {
 	name = nname;
@@ -334,49 +330,54 @@ var bot;
 
 var cmdBinds = {
 	'STOP': function(src, cmd, args){
-		if(!status.quizEnabled) return;
+		if(!status.quizEnabled) return false;
 		bot.say(name, messages.manualStop);
 		quiz.finish();
 		src.send(sprintf(messages.cmdStopped, name));
+		return true;
 	},
 	'CLEAR': function(src, cmd, args){
 		if(status.quizEnabled){
 			src.send(messages.cmdCantClear);
-			return;
+			return false;
 		}
 		status.questions = [];
 		src.send(messages.cmdCleared);
+		return true;
 	},
 	'SHUFFLE': function(src, cmd, args){
 		if(status.quizEnabled){
 			src.send(messages.cmdCantShuffle);
-			return;
+			return false;
 		}
 		status.questions = shuffle(status.questions);
 		src.send(messages.cmdShuffled);
+		return true;
 	},
 	'HELP': function(src, cmd, args){
 		console.log('not implemented');
+		return true;
 	},
 	'SKIP': function(src, cmd, args){
 		if(!status.quizEnabled) return;
 		if(!status.qActive){
 			src.send(messages.cmdNoQuestionActive);
-			return;
+			return false;
 		}
 		status.qActive = 0;
 		bot.say(name, sprintf(messages.manualSkip, status.qNumber));
 		quiz.nextQuestion();
 		src.send(sprintf(messages.cmdSkipped, status.qNumber-1));
+		return true;
 	},
 	'START': function(src, cmd, args){
 		if(status.quizEnabled){
 			src.send(messages.cmdAlreadyStarted);
-			return;
+			return false;
 		}
 		if(status.questions == false || status.questions.length == 0){
 			src.send(messages.cmdNoQuestions);
-			return;
+			return false;
 		}
 		status.quizEnabled = true;
 		status.qNumber = 1;
@@ -389,17 +390,18 @@ var cmdBinds = {
 		bot.say(name, sprintf(messages.settingsInfo, settings.delay, settings.hintMax, settings.hintDelay));
 		quiz.firstQuestion();
 		src.send(messages.cmdStarted);
+		return true;
 	},
 	'ADDPOINT': function(src, cmd, args){
 		if(args.length != 2){
 			src.send(messages.cmdAddpointSyntax);
-			return;
+			return false;
 		}
 		var nick = args[0];
 		var points = args[1];
 		if(points < -5 || points > 5){
 			src.send(messages.cmdAddpointLimit);
-			return;
+			return false;
 		}
 		if(quiz.getPoints(nick) == false){
 			src.send(sprintf(messages.cmdAddpointNewNick, nick));
@@ -409,15 +411,16 @@ var cmdBinds = {
 		if(settings.notifyRankChange){
 			bot.say(name, sprintf(messages.manualRankChanged, nick, points));
 		}
+		return true;
 	},
 	'LOAD': function(src, cmd, args){
 		if(args.length < 1 || args.length > 2 || (args.length == 2 && args[1].toLowerCase() != 'append')){
 			src.send(messages.cmdLoadSyntax);
-			return;
+			return false;
 		}
 		if(status.quizEnabled){
 			src.send(messages.cmdCantLoad);
-			return;
+			return false;
 		}
 		if(args.length == 1){
 			status.questions = [];
@@ -432,116 +435,119 @@ var cmdBinds = {
 			status.questions = status.questions.concat(newQuestions);
 		} catch(error){
 			src.send(sprintf(messages.cmdLoadException, args[0], error));
-			return;
+			return false;
 		}
 		src.send(sprintf(messages.cmdLoaded, newQuestions.length, status.questions.length));
+		return true;
 	},
 	'SAVE': function(src, cmd, args){
 		if(args.length != 1){
 			src.send(messages.cmdSaveSyntax);
-			return;
+			return false;
 		}
 		if(fs.existsSync(args[0])){
 			src.send(sprintf(messages.cmdNotOverwriting, args[0]));
-			return;
+			return false;
 		}
 		try {
 			fs.writeFileSync(args[0], JSON.stringify(status.questions));
 		} catch(error){
 			src.send(sprintf(messages.cmdSaveException, args[0], error));
-			return;
+			return false;
 		}
 		src.send(sprintf(messages.cmdSaved, status.questions.length));
+		return true;
 	},
 	'LOAD_DIZZY': function(src, cmd, args){
 		if(args.length != 1){
 			src.send(messages.cmdSpecialLoadSyntax);
-			return;
+			return false;
 		}
 		if(status.quizEnabled){
 			src.send(messages.cmdCantLoad);
-			return;
+			return false;
 		}
-		questions.loadQuestionsDizzy(status.questions, src, args[0]);
+		return questions.loadQuestionsDizzy(status.questions, src, args[0]);
 	},
 	'SAVE_DIZZY': function(src, cmd, args){
 		if(args.length != 1){
 			src.send(messages.cmdSpecialSaveSyntax);
-			return;
+			return false;
 		}
-		questions.saveQuestionsDizzy(status.questions, src, args[0]);
+		return questions.saveQuestionsDizzy(status.questions, src, args[0]);
 	},
 	'LOAD_MIL': function(src, cmd, args){
 		if(args.length != 1){
 			src.send(messages.cmdSpecialLoadSyntax);
-			return;
+			return false;
 		}
 		if(status.quizEnabled){
 			src.send(messages.cmdCantLoad);
-			return;
+			return false;
 		}
 		questions.loadQuestionsMilioner(status.questions, src, args[0]);
+		return true;
 	},
 	'SAVE_MIL': function(src, cmd, args){
 		if(args.length != 1){
 			src.send(messages.cmdSpecialSaveSyntax);
-			return;
+			return false;
 		}
-		questions.saveQuestionsMilioner(status.questions, src, args[0]);
+		return questions.saveQuestionsMilioner(status.questions, src, args[0]);
 	},
 	'LOAD_FAM': function(src, cmd, args){
 		if(args.length != 1){
 			src.send(messages.cmdSpecialLoadSyntax);
-			return;
+			return false;
 		}
 		if(status.quizEnabled){
 			src.send(messages.cmdCantLoad);
-			return;
+			return false;
 		}
-		questions.loadQuestionsFamiliada(status.questions, src, args[0]);
+		return questions.loadQuestionsFamiliada(status.questions, src, args[0]);
 	},
 	'SAVE_FAM': function(src, cmd, args){
 		if(args.length != 1){
 			src.send(messages.cmdSpecialSaveSyntax);
-			return;
+			return false;
 		}
-		questions.saveQuestionsFamiliada(status.questions, src, args[0]);
+		return questions.saveQuestionsFamiliada(status.questions, src, args[0]);
 	},
 	'LOAD_C': function(src, cmd, args){
 		if(args.length != 1){
 			src.send(messages.cmdSpecialLoadSyntax);
-			return;
+			return false;
 		}
 		if(status.quizEnabled){
 			src.send(messages.cmdCantLoad);
-			return;
+			return false;
 		}
-		questions.loadQuestionsCbot(status.questions, src, args[0]);
+		return questions.loadQuestionsCbot(status.questions, src, args[0]);
 	},
 	'SAVE_C': function(src, cmd, args){
 		if(args.length != 1){
 			src.send(messages.cmdSpecialSaveSyntax);
-			return;
+			return false;
 		}
-		questions.saveQuestionsCbot(status.questions, src, args[0]);
+		return questions.saveQuestionsCbot(status.questions, src, args[0]);
 	},
 	'LOAD_K': function(src, cmd, args){
 		if(args.length != 1){
 			src.send(messages.cmdSpecialLoadSyntax);
-			return;
+			return false;
 		}
 		if(status.quizEnabled){
 			src.send(messages.cmdCantLoad);
-			return;
+			return false;
 		}
-		questions.loadQuestionsKtrivia(status.questions, src, args[0]);
+		return questions.loadQuestionsKtrivia(status.questions, src, args[0]);
 	},
 	'SAVE_K': function(src, cmd, args){
 		if(args.length != 1){
 			src.send(messages.cmdSpecialSaveSyntax);
-			return;
+			return false;
 		}
-		questions.saveQuestionsKtrivia(status.questions, src, args[0]);
+		return questions.saveQuestionsKtrivia(status.questions, src, args[0]);
 	}
 };
 
@@ -1081,5 +1087,8 @@ var quiz = {
 	}
 }
 
+web.setSettings(settings);
+web.setStatus(status);
+web.setCommands(cmdBinds);
 web.setQuiz(quiz);
 

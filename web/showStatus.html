@@ -9,4 +9,33 @@
 <tr class="qActive"><td>Current answer(s)</td><td id="currentAnswer"></td></tr>
 </td>
 </table>
-<div id="allQuestions"></div>
+<div id="commands">
+<h2>Commands</h2>
+<table>
+<tr><td><a id="commandStop" href="#">Stop</a></td><td></td><td>Terminates the game.</td></tr>
+<tr><td><a id="commandClear" href="#">Clear</a></td><td></td><td>Removes all questions.</td></tr>
+<tr><td><a id="commandShuffle" href="#">Shuffle</a></td><td></td><td>Shuffles the questions.</td></tr>
+<tr><td><a id="commandHelp" href="#">Help</a></td><td></td><td>Output commands help.</td></tr>
+<tr><td><a id="commandSkip" href="#">Skip</a></td><td></td><td>Skips current question.</td></tr>
+<tr><td><a id="commandStart" href="#">Start</a></td><td></td><td>Starts the game.</td></tr>
+<tr><td><a id="commandAddpoint" href="#">Addpoint</a></td><td>Nick: <input type="text" id="commandAddpointNick"><br>Points: <input type="text" id="commandAddpointPoints"></td><td>Gives points to the user.</td></tr>
+<tr><td><a id="commandLoad" href="#">Load</a></td><td>File: <input type="text" id="commandLoadFile"></td><td>Loads question file in JSON format.</td></tr>
+<tr><td><a id="commandSave" href="#">Save</a></td><td>File: <input type="text" id="commandSaveFile"></td><td>Saves question file in JSON format.</td></tr>
+<tr><td><a id="commandLoadDizzy" href="#">Load_Dizzy</a></td><td>File: <input type="text" id="commandLoadDizzyFile"></td><td>Loads question file in "<a href="http://www.quiz.net.pl/dizzy.php">Dizzy</a>" format.</td></tr>
+<tr><td><a id="commandSaveDizzy" href="#">Save_Dizzy</a></td><td>File: <input type="text" id="commandSaveDizzyFile"></td><td>Saves question file in "Dizzy" format.</td></tr>
+<tr><td><a id="commandLoadMil" href="#">Load_Mil</a></td><td>File: <input type="text" id="commandLoadMilFile"></td><td>Loads question file in "<a href="http://www.quiz.net.pl/milionerzy.php">Milionerzy</a>" format.</td></tr>
+<tr><td><a id="commandSaveMil" href="#">Save_Mil</a></td><td>File: <input type="text" id="commandSaveMilFile"></td><td>Saves question file in "Milionerzy" format.</td></tr>
+<tr><td><a id="commandLoadFam" href="#">Load_Fam</a></td><td>File: <input type="text" id="commandLoadFamFile"></td><td>Loads question file in "<a href="http://www.quiz.net.pl/familiada.php">Familiada</a>" format.</td></tr>
+<tr><td><a id="commandSaveFam" href="#">Save_Fam</a></td><td>File: <input type="text" id="commandSaveFamFile"></td><td>Saves question file in "Familiada" format.</td></tr>
+<tr><td><a id="commandLoadC" href="#">Load_C</a></td><td>File: <input type="text" id="commandLoadCFile"></td><td>Loads question file in "Cbot" format.</td></tr>
+<tr><td><a id="commandSaveC" href="#">Save_C</a></td><td>File: <input type="text" id="commandSaveCFile"></td><td>Saves question file in "Cbot" format.</td></tr>
+<tr><td><a id="commandLoadK" href="#">Load_K</a></td><td>File: <input type="text" id="commandLoadKFile"></td><td>Loads question file in "Ktrivia" format.</td></tr>
+<tr><td><a id="commandSaveK" href="#">Save_K</a></td><td>File: <input type="text" id="commandSaveKFile"></td><td>Saves question file in "Ktrivia" format.</td></tr>
+</table>
+<h3>Result</h3>
+<table>
+<tr><td>Result:</td><td id="commandResult">No command performed yet</td></tr>
+<tr><td>Reply:</td><td id="commandReply">No command performed yet</td></tr>
+</table>
+</div>
+<div id="allQuestions"></div>http://localhost:12345/modules/command/load_k/?args=all.vars
